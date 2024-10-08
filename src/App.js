@@ -70,12 +70,12 @@ function App() {
     <><FestiveModal isOpen={showVictory} onClose={() => setShowVictory(false)} />
       <Container
         maxW="full"
-        h="100vh"
+        //h="100vh"
         bg="rgb(168,133,136)"
         centerContent
         padding="4"
       >
-        <Grid templateColumns="1fr 4fr" gap={4} w="full" h='calc(100vh - 60px)'>
+        <Grid templateColumns="1fr 4fr" gap={4} w="full" >
           <GridItem>
             <Box bg="rgb(255, 215, 0)" p="4" borderRadius="3xl" textAlign="center" mt={10}>
               <Heading size="lg" mb="4">🎵 Paroldle</Heading>
@@ -108,10 +108,10 @@ function App() {
                 <Heading size='lg'>🎤</Heading>
                 <Input placeholder={lastWord} maxW={300} color={'white'} onKeyDown={(e) => { if (e.key === 'Enter') handleClickEnter(); }} value={inputWord} onChange={(e) => setInputWord(e.target.value)} />
                 <Button colorScheme="blue" onClick={handleClickEnter} mr={4}>Rechercher</Button>
-                {(Object.keys(guessFeedback).length > 0) && <Text>{'🟩'.repeat(guessFeedback.perfect_match)}</Text>}
+                {(Object.keys(guessFeedback).length > 0) && <Text>{ (guessFeedback.perfect_match > 0) ? '🟩'.repeat(guessFeedback.perfect_match) : '🟥'}</Text>}
                 {victory && (showAllSong ? <ViewOffIcon boxSize={7} onClick={handleClickShowSong} /> : <ViewIcon boxSize={7} onClick={handleClickShowSong} />)}
               </HStack>
-              <Box bg="gray.100" h="calc(100vh - 500px)" p="4" borderRadius="md" boxShadow="inset 4px 4px 8px rgba(0, 0, 0, 0.3), inset -4px -4px 8px rgba(255, 255, 255, 0.7)">
+              <Box bg="gray.100" p="4" borderRadius="md" boxShadow="inset 4px 4px 8px rgba(0, 0, 0, 0.3), inset -4px -4px 8px rgba(255, 255, 255, 0.7)">
                 <LyricsComponent song={song} setVictory={setVictory} guess={guess} showAllSong={showAllSong} setGuessFeedback={setGuessFeedback} />
               </Box>
             </Box>

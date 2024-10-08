@@ -10,8 +10,9 @@ function stringToList(text) {
 }
 
 const isAlphanumeric = (word) => {
-    return /^[a-z0-9\u00C0-\u00FF]+$/i.test(word);
+    return /^[a-z0-9\u00C0-\u00FF\u0152\u0153]+$/i.test(word);
 };
+
 
 const LyricsComponent = ({ song, setVictory, guess, showAllSong, setGuessFeedback }) => {
 
