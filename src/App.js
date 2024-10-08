@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Button, Container, Box, Text, Input, Heading, Grid, GridItem, Image, HStack } from '@chakra-ui/react';
+import { Button, Container, Box, Text, Input, Heading, Grid, GridItem, Image, HStack, Divider } from '@chakra-ui/react';
 import { getSong } from './lyrics';
 import { useState } from 'react';
 import LyricsComponent from './LyricsComponent';
@@ -32,8 +32,10 @@ function App() {
   const handleClickEnter = async () => {
     if (inputWord) {
       let inputWordTrim = inputWord.trim();
-      setGuess(inputWordTrim);
-      setLastWord(inputWordTrim);
+      if(inputWordTrim !== guess) {
+        setGuess(inputWordTrim);
+        setLastWord(inputWordTrim);
+      }
       setInputWord('');
       setGuessList([...guessList, inputWordTrim]);
     }
@@ -71,15 +73,24 @@ function App() {
       <Container
         maxW="full"
         //h="100vh"
-        bg="rgb(168,133,136)"
+        bg="rgb(245,169,188)"
         centerContent
         padding="4"
       >
         <Grid templateColumns="1fr 4fr" gap={4} w="full" >
           <GridItem>
-            <Box bg="rgb(255, 215, 0)" p="4" borderRadius="3xl" textAlign="center" mt={10}>
+            <Box bg="rgb(255,245,204)" p="4" borderRadius="3xl" textAlign="center" mt={10}>
               <Heading size="lg" mb="4">🎵 Paroldle</Heading>
               <Heading size="md" mb="4">Chanson n°{index}</Heading>
+              <Divider width="70%" borderWidth="2px" borderColor="black" mx="auto" mb="4" />
+              { (guessList.length > 0) && (<Text
+                fontSize="lg"
+                fontWeight="bold"
+                color="black"
+                mb="4"
+              >
+                Anciens Essais :
+              </Text>)}
               <Box maxH="calc(100vh - 900px)" overflowY="auto">
                 {guessList.reverse().map((word, i) => (
                   <Text key={i}>{guessList.length - i}. 🎵{word}</Text>
@@ -87,7 +98,7 @@ function App() {
               </Box>
             </Box>
 
-            <Box bg="rgb(77,120,134)" p="4" borderRadius="3xl" shadow="md" mt={10}>
+            <Box bg="rgb(163,193,224)" p="4" borderRadius="3xl" shadow="md" mt={10}>
               <Heading size="lg" mb="4" color={'white'} textAlign={'center'}>Autres chansons</Heading>
               <Box h="calc(100vh - 550px)" overflowY="scroll">
                 <Grid templateColumns="repeat(5, 1fr)" gap={4}>
@@ -101,13 +112,13 @@ function App() {
           </GridItem>
 
           <GridItem>
-            <Box bg="rgb(77,120,134)" p="4" borderRadius="3xl" shadow="md" mt={10}>
+            <Box bg="rgb(163,193,224)" p="4" borderRadius="3xl" shadow="md" mt={10}>
               <Image src="https://yoannsab.github.io/paroldle/paroldle2.png" alt="Paroldle" w={500} mx="auto" mb="4" />
               <Heading size="lg" mb="4" color={'white'} textAlign={'center'}>Découvrez la chanson d'aujourd'hui !</Heading>
               <HStack mb="4">
                 <Heading size='lg'>🎤</Heading>
-                <Input placeholder={lastWord} maxW={300} color={'white'} onKeyDown={(e) => { if (e.key === 'Enter') handleClickEnter(); }} value={inputWord} onChange={(e) => setInputWord(e.target.value)} />
-                <Button colorScheme="blue" onClick={handleClickEnter} mr={4}>Rechercher</Button>
+                <Input placeholder={lastWord} maxW={300} colorScheme='pink' onKeyDown={(e) => { if (e.key === 'Enter') handleClickEnter(); }} value={inputWord} onChange={(e) => setInputWord(e.target.value)} />
+                <Button colorScheme="pink" onClick={handleClickEnter} mr={4}>Rechercher</Button>
                 {(Object.keys(guessFeedback).length > 0) && <Text>{ (guessFeedback.perfect_match > 0) ? '🟩'.repeat(guessFeedback.perfect_match) : '🟥'}</Text>}
                 {victory && (showAllSong ? <ViewOffIcon boxSize={7} onClick={handleClickShowSong} /> : <ViewIcon boxSize={7} onClick={handleClickShowSong} />)}
               </HStack>
