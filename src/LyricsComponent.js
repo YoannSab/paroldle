@@ -1,4 +1,5 @@
 import { Box, Text } from '@chakra-ui/react';
+import { i } from 'framer-motion/client';
 import React, { useEffect, useState } from 'react';
 import { memo } from 'react';
 
@@ -12,12 +13,17 @@ const isAlphanumeric = (word) => {
     return /^[a-z0-9\u00C0-\u00FF]+$/i.test(word);
 };
 
-const LyricsComponent = ({ song, setVictory, guess, showAllSong }) => {
+const LyricsComponent = ({ song, setVictory, guess, showAllSong, setGuessFeedback }) => {
 
     const [title, setTitle] = useState([]);
-    const [words, setWords] = useState([]);
+    const [lyrics, setLyrics] = useState([]);
+    const [artist, setArtist] = useState([]);
+
     const [titleFound, setTitleFound] = useState([]);
-    const [wordsFound, setWordsFound] = useState([]);
+    const [lyricsFound, setLyricsFound] = useState([]);
+    const [artistFound, setArtistFound] = useState([]);
+    const [currentIndexWordFound, setCurrentIndexWordFound] = useState({ "title": [], "lyrics": [], "artist": [] });
+
 
     // Initialisation des états (toujours appelés)
     useEffect(() => {
@@ -25,34 +31,72 @@ const LyricsComponent = ({ song, setVictory, guess, showAllSong }) => {
             return;
         }
         let titleList = stringToList(song.name);
-        let wordsList = stringToList(song.lyrics);
+        let lyricsList = stringToList(song.lyrics);
+        let artist = stringToList(song.creator[0].name);
+
         setTitle(titleList);
-        setWords(wordsList);
-        setTitleFound(titleList.map(() => false));
-        setWordsFound(wordsList.map(() => false));
-        
+        setLyrics(lyricsList);
+        setArtist(artist);
+
+        setTitleFound(titleList.reduce((acc, word, i) => {
+            if (!isAlphanumeric(word)) {
+              acc.push(i);
+            }
+            return acc;
+          }, []));
+        setLyricsFound(lyricsList.reduce((acc, word, i) => {
+            if (!isAlphanumeric(word)) {
+              acc.push(i);
+            }
+            return acc;
+          }
+            , []));
+        setArtistFound(artist.reduce((acc, word, i) => {
+            if (!isAlphanumeric(word)) {
+              acc.push(i);
+            }
+            return acc;
+          }
+            , []));
+
+
+
     }, [song]);
 
     // Effet de mise à jour des mots trouvés lors du changement de guess
     useEffect(() => {
-        console.log('guess:', guess);
         if (guess && song) {
             let foundIndicesTitle = title.map((word, i) => {
-                return word.toLowerCase() === guess.toLowerCase() ? i : -1;
+                return word.toLowerCase() === guess.toLowerCase() && !titleFound.includes(i) ? i : -1;
             }).filter(i => i !== -1);
-            console.log('foundIndicesTitle:', foundIndicesTitle);
-            console.log('titleFound:', titleFound);
-            setTitleFound(titleFound.map((val, i) => foundIndicesTitle.includes(i) || val));
+            setTitleFound([...titleFound, ...foundIndicesTitle]);
 
-            let foundIndicesWords = words.map((word, i) => {
-                return word.toLowerCase() === guess.toLowerCase() ? i : -1;
+
+            let foundIndicesLyrics = lyrics.map((word, i) => {
+                return word.toLowerCase() === guess.toLowerCase() && !lyricsFound.includes(i) ? i : -1;
             }).filter(i => i !== -1);
-            setWordsFound(wordsFound.map((val, i) => foundIndicesWords.includes(i) || val));
+            setLyricsFound([...lyricsFound, ...foundIndicesLyrics]);
+
+            let foundIndicesArtist = artist.map((word, i) => {
+                return word.toLowerCase() === guess.toLowerCase() && !artistFound.includes(i) ? i : -1;
+            }).filter(i => i !== -1);
+            setArtistFound([...artistFound, ...foundIndicesArtist]);
+
+            setGuessFeedback({
+                'perfect_match': foundIndicesTitle.length + foundIndicesLyrics.length + foundIndicesArtist.length,
+            });
+
+            setCurrentIndexWordFound({
+                "title": foundIndicesTitle,
+                "lyrics": foundIndicesLyrics,
+                "artist": foundIndicesArtist
+            });
+            console.log(artistFound, titleFound, lyricsFound);
         }
     }, [guess]);
 
     useEffect(() => {
-        if (titleFound.length > 0 && titleFound.every(val => val)) {
+        if (titleFound.length === title.length) {
             setVictory(true);
         }
     }, [titleFound]);
@@ -65,19 +109,24 @@ const LyricsComponent = ({ song, setVictory, guess, showAllSong }) => {
         <>
             <Box mb={4}>
                 {title.map((word, i) => (
-                    <LyricWords key={i} word={word} found={titleFound[i] || showAllSong} />
+                    <LyricWords key={i} word={word} isCurrentGuess={currentIndexWordFound.title.includes(i)} found={titleFound.includes(i) || showAllSong} />
+                ))}
+            </Box>
+            <Box mb={4}>
+                {artist.map((word, i) => (
+                    <LyricWords key={i} word={word} isCurrentGuess={currentIndexWordFound.artist.includes(i)} found={artistFound.includes(i) || showAllSong} />
                 ))}
             </Box>
             <Box>
-                {words.map((word, i) => (
-                    <LyricWords key={i} word={word} found={wordsFound[i] || showAllSong} />
+                {lyrics.map((word, i) => (
+                    <LyricWords key={i} word={word} isCurrentGuess={currentIndexWordFound.lyrics.includes(i)} found={lyricsFound.includes(i) || showAllSong} />
                 ))}
             </Box>
         </>
     );
 };
 
-const LyricWords = ({ word, found }) => {
+const LyricWords = ({ word, isCurrentGuess, found }) => {
     const [showWordLength, setShowWordLength] = useState(false);
 
     const handleClick = () => {
@@ -90,38 +139,56 @@ const LyricWords = ({ word, found }) => {
     };
 
     return (
-        found ? (
-            <Text fontSize={'xl'} display={'inline-block'} color={'green.400'} mr={4}>{word}</Text>
-        ) : isAlphanumeric(word) ? (
-            <Box
-                width={word.length * 6} // Largeur en fonction de la longueur du mot
-                height={5} // Hauteur fixe
-                backgroundColor={'gray.600'}
-                display={'inline-block'}
-                cursor={'pointer'}
-                position={'relative'}
-                mr={3}
-                onClick={handleClick}
-                textAlign={'center'}
-                borderRadius={'md'}
-            >
-                {showWordLength && (
+        (found ? (
+            isCurrentGuess ? (
+                <Box
+                    backgroundColor={'green.300'}
+                    display={'inline-block'}
+                    mr={3}
+                    pl={1}
+                    pr={1}
+                    textAlign={'center'}
+                    borderRadius={'md'}
+                    transform='translateY(-2px)'
+                >
                     <Text
-                        color={'white'}
-                        position="absolute"
-                        top="50%"
-                        left="50%"
-                        transform="translate(-50%, -50%)"
-                        fontWeight={'bold'}
                         fontSize={'lg'}
                     >
-                        {word.length}
+                        {word}
                     </Text>
-                )}
-            </Box>
-        ) : (
-            <span>{word} </span>
+                </Box>
+            ) : (
+                <Text fontSize={'lg'} display={'inline-block'} mr={3}>{word}</Text>
+            )
         )
+            : (
+                <Box
+                    width={word.length * 6} 
+                    height={5} 
+                    backgroundColor={'gray.600'}
+                    display={'inline-block'}
+                    cursor={'pointer'}
+                    position={'relative'}
+                    mr={3}
+                    onClick={handleClick}
+                    textAlign={'center'}
+                    borderRadius={'md'}
+                >
+                    {showWordLength && (
+                        <Text
+                            color={'white'}
+                            position="absolute"
+                            top="50%"
+                            left="50%"
+                            transform="translate(-50%, -50%)"
+                            fontWeight={'bold'}
+                            fontSize={'lg'}
+                        >
+                            {word.length}
+                        </Text>
+                    )}
+                </Box>
+            ))
     );
 };
 

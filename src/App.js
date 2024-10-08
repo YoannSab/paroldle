@@ -16,6 +16,7 @@ function App() {
   const [guess, setGuess] = useState('');
   const [guessList, setGuessList] = useState([]);
   const [index, setIndex] = useState(null);
+  const [guessFeedback, setGuessFeedback] = useState({});
 
   useEffect(() => {
     let index = localStorage.getItem('index');
@@ -58,6 +59,9 @@ function App() {
       setSong(data);
       console.log(data);
     });
+    setVictory(false);
+    setGuessList([]);
+    
   }
     , [index]);
 
@@ -77,8 +81,8 @@ function App() {
               <Heading size="lg" mb="4">🎵 Paroldle</Heading>
               <Heading size="md" mb="4">Chanson n°{index}</Heading>
               <Box maxH="calc(100vh - 900px)" overflowY="auto">
-                {guessList.map((word, i) => (
-                  <Text key={i}>🎵{word}</Text>
+                {guessList.reverse().map((word, i) => (
+                  <Text key={i}>{guessList.length - i}. 🎵{word}</Text>
                 ))}
               </Box>
             </Box>
@@ -98,16 +102,17 @@ function App() {
 
           <GridItem>
             <Box bg="rgb(77,120,134)" p="4" borderRadius="3xl" shadow="md" mt={10}>
-              <Image src="./paroldle2.png" alt="Paroldle" w={500} mx="auto" mb="4" />
+              <Image src="https://yoannsab.github.io/paroldle/paroldle2.png" alt="Paroldle" w={500} mx="auto" mb="4" />
               <Heading size="lg" mb="4" color={'white'} textAlign={'center'}>Découvrez la chanson d'aujourd'hui !</Heading>
               <HStack mb="4">
                 <Heading size='lg'>🎤</Heading>
                 <Input placeholder={lastWord} maxW={300} color={'white'} onKeyDown={(e) => { if (e.key === 'Enter') handleClickEnter(); }} value={inputWord} onChange={(e) => setInputWord(e.target.value)} />
                 <Button colorScheme="blue" onClick={handleClickEnter} mr={4}>Rechercher</Button>
+                {(Object.keys(guessFeedback).length > 0) && <Text>{'🟩'.repeat(guessFeedback.perfect_match)}</Text>}
                 {victory && (showAllSong ? <ViewOffIcon boxSize={7} onClick={handleClickShowSong} /> : <ViewIcon boxSize={7} onClick={handleClickShowSong} />)}
               </HStack>
               <Box bg="gray.100" h="calc(100vh - 500px)" p="4" borderRadius="md" boxShadow="inset 4px 4px 8px rgba(0, 0, 0, 0.3), inset -4px -4px 8px rgba(255, 255, 255, 0.7)">
-                <LyricsComponent song={song} setVictory={setVictory} guess={guess} showAllSong={showAllSong} />
+                <LyricsComponent song={song} setVictory={setVictory} guess={guess} showAllSong={showAllSong} setGuessFeedback={setGuessFeedback} />
               </Box>
             </Box>
           </GridItem>
