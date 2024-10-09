@@ -9,7 +9,7 @@ import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 function App() {
   const [song, setSong] = useState(null);
   const [inputWord, setInputWord] = useState('');
-  const [lastWord, setLastWord] = useState('Mot');
+  const [lastWord, setLastWord] = useState('');
   const [victory, setVictory] = useState(false);
   const [showVictory, setShowVictory] = useState(false);
   const [showAllSong, setShowAllSong] = useState(false);
@@ -20,7 +20,7 @@ function App() {
 
   useEffect(() => {
     let index = localStorage.getItem('index');
-    if (index) {
+    if (index && parseInt(index)) {
       setIndex(parseInt(index));
     } else {
       const today = new Date();
@@ -37,9 +37,14 @@ function App() {
         setLastWord(inputWordTrim);
       }
       setInputWord('');
-      setGuessList([...guessList, inputWordTrim]);
+      setGuessList([inputWordTrim, ...guessList]);
     }
   }
+
+  useEffect(() => {
+    console.log(guessList);
+  }
+    , [guessList]);
 
   const handleClickShowSong = async () => {
     if (victory) {
@@ -63,7 +68,6 @@ function App() {
     });
     setVictory(false);
     setGuessList([]);
-    
   }
     , [index]);
 
@@ -72,7 +76,6 @@ function App() {
     <><FestiveModal isOpen={showVictory} onClose={() => setShowVictory(false)} />
       <Container
         maxW="full"
-        //h="100vh"
         bg="rgb(245,169,188)"
         centerContent
         padding="4"
@@ -83,7 +86,8 @@ function App() {
               <Heading size="lg" mb="4">🎵 Paroldle</Heading>
               <Heading size="md" mb="4">Chanson n°{index}</Heading>
               <Divider width="70%" borderWidth="2px" borderColor="black" mx="auto" mb="4" />
-              { (guessList.length > 0) && (<Text
+              { (guessList.length > 0) && 
+              (<Text
                 fontSize="lg"
                 fontWeight="bold"
                 color="black"
@@ -91,8 +95,8 @@ function App() {
               >
                 Anciens Essais :
               </Text>)}
-              <Box maxH="calc(100vh - 900px)" overflowY="auto">
-                {guessList.reverse().map((word, i) => (
+              <Box height="200px" overflowY="auto">
+                {guessList.map((word, i) => (
                   <Text key={i}>{guessList.length - i}. 🎵{word}</Text>
                 ))}
               </Box>
@@ -100,7 +104,7 @@ function App() {
 
             <Box bg="rgb(163,193,224)" p="4" borderRadius="3xl" shadow="md" mt={10}>
               <Heading size="lg" mb="4" color={'white'} textAlign={'center'}>Autres chansons</Heading>
-              <Box h="calc(100vh - 550px)" overflowY="scroll">
+              <Box maxHeight='340px' overflowY="auto">
                 <Grid templateColumns="repeat(5, 1fr)" gap={4}>
                   {[...Array(73)].map((_, i) => (
                     <Button key={i} bg="gray.100" p="2" borderRadius="md" boxShadow="md" textAlign="center" onClick={() => setIndex(i+1)}>{i+1}</Button>
@@ -119,7 +123,7 @@ function App() {
                 <Heading size='lg'>🎤</Heading>
                 <Input placeholder={lastWord} maxW={300} colorScheme='pink' onKeyDown={(e) => { if (e.key === 'Enter') handleClickEnter(); }} value={inputWord} onChange={(e) => setInputWord(e.target.value)} />
                 <Button colorScheme="pink" onClick={handleClickEnter} mr={4}>Rechercher</Button>
-                {(Object.keys(guessFeedback).length > 0) && <Text>{ (guessFeedback.perfect_match > 0) ? '🟩'.repeat(guessFeedback.perfect_match) : '🟥'}</Text>}
+                {(guessList.length > 0) && <Text>{ (guessFeedback.perfect_match > 0 || guessFeedback.partial_match > 0) ? '🟩'.repeat(guessFeedback.perfect_match) + '🟧'.repeat(guessFeedback.partial_match) : '🟥'}</Text>}
                 {victory && (showAllSong ? <ViewOffIcon boxSize={7} onClick={handleClickShowSong} /> : <ViewIcon boxSize={7} onClick={handleClickShowSong} />)}
               </HStack>
               <Box bg="gray.100" p="4" borderRadius="md" boxShadow="inset 4px 4px 8px rgba(0, 0, 0, 0.3), inset -4px -4px 8px rgba(255, 255, 255, 0.7)">

@@ -1,16 +1,41 @@
 import { Box, Text } from '@chakra-ui/react';
 import React, { useEffect, useState } from 'react';
 import { memo } from 'react';
-import { word_to_lemme } from './word_to_lemme';
+import { embeddings_v_small } from './embeddings_v_small';
+import { word_to_lemme_small } from './word_to_lemme_small';
+import { cosineSimilarity } from './compare_words';
+
 //import { loadModel, compareWords, buildCache } from './compare_words';
 
 function stringToList(text) {
-    text = text.replace('\n', '.');
-    return text.match(/([\w\u00C0-\u017F]+|[^\s\w])/g);
+    return text
+        .replace(/\n+/g, '\n')
+        .split(/\r?\n/)
+        .map(line =>
+            line.match(/([\w\u00C0-\u017F]+(?:')?|[^\s\w])/g) || []
+        )
+        .reduce((acc, line) => acc.concat(line, '\n'), []);
 }
 
-const isAlphanumeric = (word) => /^[a-z0-9\u00C0-\u00FF\u0152\u0153]+$/i.test(word);
+const isAlphanumeric = (word) => /^[a-z0-9\u00C0-\u00FF\u0152\u0153']+$/i.test(word);
+const isSingleCharWithApostrophe = (word) => /^[a-zA-Z\u00C0-\u00FF\u0152\u0153]'$/i.test(word);
+const findBreakPoint = (lyrics) => {
+    const middle = Math.floor(lyrics.length / 2);
+    
+    for (let i = middle; i < lyrics.length; i++) {
+      if (lyrics[i] === '\n') {
+        return i + 1;
+      }
+    }
+    for (let i = middle; i >= 0; i--) {
+      if (lyrics[i] === '\n') {
+        return i + 1;
+      }
+    }
+    return middle;
+  };
 
+  
 const LyricsComponent = ({ song, setVictory, guess, showAllSong, setGuessFeedback }) => {
     const [title, setTitle] = useState([]);
     const [lyrics, setLyrics] = useState([]);
@@ -22,17 +47,6 @@ const LyricsComponent = ({ song, setVictory, guess, showAllSong, setGuessFeedbac
     const [partialMatchesLyrics, setPartialMatchesLyrics] = useState({});
     const [partialMatchesArtist, setPartialMatchesArtist] = useState({});
     const [currentIndexWordFound, setCurrentIndexWordFound] = useState({ title: [], lyrics: [], artist: [] });
-    // const [model, setModel] = useState(null);
-    // const [cache, setCache] = useState(null);
-
-    // useEffect(() => {
-    //     const loadModelAsync = async () => {
-    //         const model = await loadModel();
-    //         setModel(model);
-    //     };
-
-    //     loadModelAsync();
-    // }, []);
 
     useEffect(() => {
         if (!song) return;
@@ -40,6 +54,7 @@ const LyricsComponent = ({ song, setVictory, guess, showAllSong, setGuessFeedbac
         const titleList = stringToList(song.name);
         const lyricsList = stringToList(song.lyrics);
         const artistList = stringToList(song.creator[0].name);
+        //console.log(lyricsList);
 
         setTitle(titleList);
         setLyrics(lyricsList);
@@ -58,9 +73,13 @@ const LyricsComponent = ({ song, setVictory, guess, showAllSong, setGuessFeedbac
             return acc;
         }, []));
 
-        // if (model){
-        //     setCache(buildCache(model, [...titleList, ...lyricsList, ...artistList]));
-        // }
+        //console.log(lyricsFound);
+        setCurrentIndexWordFound({ title: [], lyrics: [], artist: [] });
+        setGuessFeedback({ perfect_match: 0, partial_match: 0 });
+        setPartialMatchesTitle({});
+        setPartialMatchesLyrics({});
+        setPartialMatchesArtist({});
+        // eslint-disable-next-line
     }, [song]);
 
     useEffect(() => {
@@ -74,16 +93,32 @@ const LyricsComponent = ({ song, setVictory, guess, showAllSong, setGuessFeedbac
                     await Promise.all(
                         wordList.map(async (word, i) => {
                             if (foundList.includes(i)) return;
-                            // const similarity = await compareWords(model, cache, guess.toLowerCase(), word.toLowerCase());
                             let guessLower = guess.toLowerCase();
                             let wordLower = word.toLowerCase();
-                            let guessLems = guessLower in word_to_lemme ? word_to_lemme[guessLower] : [guessLower];
-                            let wordLems = wordLower in word_to_lemme ? word_to_lemme[wordLower] : [wordLower];
-                            const similarity = guessLower === wordLower || guessLems.some(lem => wordLems.includes(lem)) ? 1 : 0;
+
+                            if (guessLower === wordLower) {
+                                foundIndices.push(i);
+                                return;
+                            }
+                            else if (((isSingleCharWithApostrophe(guessLower) && wordLower.length === 2)
+                                || (isSingleCharWithApostrophe(wordLower) && guessLower.length === 2))
+                                && guessLower[0] === wordLower[0]) {
+                                foundIndices.push(i);
+                                return;
+                            }
+
+
+                            let guessLems = word_to_lemme_small[guessLower] || [guessLower];
+                            let wordLems = word_to_lemme_small[wordLower] || [wordLower];
+                            const similarity = (guessLems.some(lem => wordLems.includes(lem))) ? 1 :
+                                cosineSimilarity(embeddings_v_small, guessLower, wordLower)
                             if (similarity > 0.9) {
-                                foundIndices.push(i); 
-                            } else if (similarity > 0.6) {
-                                partialIndices[i] = guess;
+                                foundIndices.push(i);
+                            } else if (similarity >= 0.7) {
+                                if (!partialList[i] || partialList[i][1] < similarity.toFixed(2)) {
+                                    partialIndices[i] = [guess, similarity.toFixed(2)];
+                                }
+
                             }
 
                         })
@@ -109,18 +144,20 @@ const LyricsComponent = ({ song, setVictory, guess, showAllSong, setGuessFeedbac
 
                 setGuessFeedback({
                     perfect_match: titleResult.foundIndices.length + lyricsResult.foundIndices.length + artistResult.foundIndices.length,
-                    //partial_match: titleResult.partialIndices.length + lyricsResult.partialIndices.length + artistResult.partialIndices.length
+                    partial_match: Object.keys(titleResult.partialIndices).length + Object.keys(lyricsResult.partialIndices).length + Object.keys(artistResult.partialIndices).length
                 });
             };
 
             updateFoundWords();
         }
+        // eslint-disable-next-line
     }, [guess]);
 
     useEffect(() => {
         if (titleFound.length === title.length) {
             setVictory(true);
         }
+        // eslint-disable-next-line
     }, [titleFound]);
 
     if (!song) {
@@ -133,11 +170,11 @@ const LyricsComponent = ({ song, setVictory, guess, showAllSong, setGuessFeedbac
                 {title.map((word, i) => (
                     <LyricWords
                         key={i}
+                        prevWord={title[i - 1]}
                         word={word}
                         isCurrentGuess={currentIndexWordFound.title.includes(i)}
                         found={titleFound.includes(i) || showAllSong}
-                        partial={i.toString() in partialMatchesTitle}
-                        wordPartialMatch={i.toString() in partialMatchesTitle ? partialMatchesTitle[i] : null}
+                        partialMatch={partialMatchesTitle[i] ? partialMatchesTitle[i][0] : null}
                     />
                 ))}
             </Box>
@@ -145,32 +182,56 @@ const LyricsComponent = ({ song, setVictory, guess, showAllSong, setGuessFeedbac
                 {artist.map((word, i) => (
                     <LyricWords
                         key={i}
+                        prevWord={artist[i - 1]}
                         word={word}
                         isCurrentGuess={currentIndexWordFound.artist.includes(i)}
                         found={artistFound.includes(i) || showAllSong}
-                        partial={i.toString() in partialMatchesArtist}
-                        wordPartialMatch={i.toString() in partialMatchesArtist ? partialMatchesArtist[i] : null}
+                        partialMatch={partialMatchesArtist[i] ? partialMatchesArtist[i][0] : null}
                     />
                 ))}
             </Box>
-            <Box>
-                {lyrics.map((word, i) => (
-                    <LyricWords
-                        key={i}
-                        word={word}
-                        isCurrentGuess={currentIndexWordFound.lyrics.includes(i)}
-                        found={lyricsFound.includes(i) || showAllSong}
-                        partial={i.toString() in partialMatchesLyrics}
-                        wordPartialMatch={i.toString() in partialMatchesLyrics ? partialMatchesLyrics[i] : null}
-                    />
-                ))}
+            <Box display="flex">
+                <Box width="50%">
+                    {lyrics.slice(0, findBreakPoint(lyrics)).map((word, i) => (
+                        word === '\n' ? (
+                            <Box key={i} as={'br'} />
+                        ) : (
+                            <LyricWords
+                                key={i}
+                                prevWord={lyrics[i - 1]}
+                                word={word}
+                                isCurrentGuess={currentIndexWordFound.lyrics.includes(i)}
+                                found={lyricsFound.includes(i) || showAllSong}
+                                partialMatch={partialMatchesLyrics[i] ? partialMatchesLyrics[i][0] : null}
+                            />
+                        )
+                    ))}
+                </Box>
+                <Box width="50%">
+                    {lyrics.slice(findBreakPoint(lyrics)).map((word, i) => (
+                        word === '\n' ? (
+                            <Box key={i} as={'br'} />
+                        ) : (
+                            <LyricWords
+                                key={i}
+                                prevWord={lyrics[i - 1 + findBreakPoint(lyrics)]}
+                                word={word}
+                                isCurrentGuess={currentIndexWordFound.lyrics.includes(i + findBreakPoint(lyrics))}
+                                found={lyricsFound.includes(i + findBreakPoint(lyrics)) || showAllSong}
+                                partialMatch={partialMatchesLyrics[i + findBreakPoint(lyrics)] ? partialMatchesLyrics[i + findBreakPoint(lyrics)][0] : null}
+                            />
+                        )
+                    ))}
+                </Box>
             </Box>
+
         </>
     );
 };
 
-const LyricWords = ({ word, isCurrentGuess, found, partial, wordPartialMatch }) => {
+const LyricWords = ({ key, prevWord, word, isCurrentGuess, found, partialMatch }) => {
     const [showWordLength, setShowWordLength] = useState(false);
+    const marginLeft = (!prevWord || prevWord === '\n' || (!isAlphanumeric(word) && !`("&-)`.includes(word))) ? 0 : 3;
 
     const handleClick = () => {
         if (!found && isAlphanumeric(word)) {
@@ -187,59 +248,61 @@ const LyricWords = ({ word, isCurrentGuess, found, partial, wordPartialMatch }) 
                 <Box
                     backgroundColor={'green.300'}
                     display={'inline-block'}
-                    mr={3}
                     pl={1}
                     pr={1}
+                    ml={marginLeft}
                     textAlign={'center'}
                     borderRadius={'md'}
-                    transform='translateY(-2px)'
                 >
-                    <Text fontSize={'lg'}>{word}</Text>
+                    <Text fontSize={'sm'}>{word}</Text>
                 </Box>
             ) : (
-                <Text display={'inline-block'} mr={3} fontSize={'lg'}>{word}</Text>
+                <Text display={'inline-block'} ml={marginLeft} fontSize={'md'}>{word}</Text>
             )
     ) : (
-            <Box
-                width={word.length * 6}
-                height={5}
-                backgroundColor={'gray.600'}
-                display={'inline-block'}
-                cursor={'pointer'}
-                position={'relative'}
-                mr={3}
-                onClick={handleClick}
-                textAlign={'center'}
-                borderRadius={'md'}
-            >
-                {showWordLength && (
-                    <Text
-                        color={'white'}
-                        position="absolute"
-                        top="50%"
-                        left="50%"
-                        transform="translate(-50%, -50%)"
-                        fontWeight={'bold'}
-                        fontSize={'lg'}
-                    >
-                        {word.length}
-                    </Text>
-                )}
-                {!showWordLength && partial && (
-                    <Text
-                        color={'white'}
-                        position="absolute"
-                        top="50%"
-                        left="50%"
-                        transform="translate(-50%, -50%)"
-                        fontWeight={'bold'}
-                        fontSize={'lg'}
-                    >
-                        {wordPartialMatch}
-                    </Text>
-                )}
-            </Box>
-        );
-    };
+        <Box
+            key={key}
+            ml={marginLeft}
+            backgroundColor={'gray.600'}
+            display={'inline-block'}
+            cursor={'pointer'}
+            position={'relative'}
+            onClick={handleClick}
+            textAlign={'center'}
+            borderRadius={'md'}
+            transform={'translateY(3px)'}
+            width={partialMatch ? `${partialMatch.length + 1}ch` : `${word.length}ch`}
+            //minWidth={partial ? `${wordPartialMatch.length+1}ch` : `${word.length+1}ch`}
+            height={'2ch'}
+        >
+            {showWordLength && (
+                <Text
+                    color={'white'}
+                    position="absolute"
+                    top="50%"
+                    left="50%"
+                    transform="translate(-50%, -50%)"
+                    fontWeight={'bold'}
+                    fontSize={'md'}
+                >
+                    {word.length}
+                </Text>
+            )}
+            {!showWordLength && partialMatch && (
+                <Text
+                    color={'orange'}
+                    position="absolute"
+                    top="50%"
+                    left="50%"
+                    transform="translate(-50%, -52%)"
+                    fontSize={'sm'}
+                >
+                    {partialMatch}
+                </Text>
+            )}
+        </Box>
+
+    );
+};
 
 export default memo(LyricsComponent);
