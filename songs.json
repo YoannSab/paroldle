@@ -1,0 +1,506 @@
+[
+    {
+      "titre": "La Vie en Rose",
+      "auteur": "Édith Piaf",
+      "année": 1945
+    },
+    {
+      "titre": "Non, je ne regrette rien",
+      "auteur": "Édith Piaf",
+      "année": 1960
+    },
+    {
+      "titre": "L'Hymne à l'amour",
+      "auteur": "Édith Piaf",
+      "année": 1950
+    },
+    {
+      "titre": "Ne me quitte pas",
+      "auteur": "Jacques Brel",
+      "année": 1959
+    },
+    {
+      "titre": "Amsterdam",
+      "auteur": "Jacques Brel",
+      "année": 1964
+    },
+    {
+      "titre": "La Bohème",
+      "auteur": "Charles Aznavour",
+      "année": 1965
+    },
+    {
+      "titre": "Hier Encore",
+      "auteur": "Charles Aznavour",
+      "année": 1964
+    },
+    {
+      "titre": "Comme d'habitude",
+      "auteur": "Claude François",
+      "année": 1967
+    },
+    {
+      "titre": "Les Champs-Élysées",
+      "auteur": "Joe Dassin",
+      "année": 1969
+    },
+    {
+      "titre": "L'été indien",
+      "auteur": "Joe Dassin",
+      "année": 1975
+    },
+    {
+      "titre": "Et maintenant",
+      "auteur": "Gilbert Bécaud",
+      "année": 1961
+    },
+    {
+      "titre": "Nathalie",
+      "auteur": "Gilbert Bécaud",
+      "année": 1964
+    },
+    {
+      "titre": "La Mer",
+      "auteur": "Charles Trenet",
+      "année": 1946
+    },
+    {
+      "titre": "Boum !",
+      "auteur": "Charles Trenet",
+      "année": 1938
+    },
+    {
+      "titre": "Douce France",
+      "auteur": "Charles Trenet",
+      "année": 1943
+    },
+    {
+      "titre": "C'est si bon",
+      "auteur": "Yves Montand",
+      "année": 1947
+    },
+    {
+      "titre": "Les feuilles mortes",
+      "auteur": "Yves Montand",
+      "année": 1949
+    },
+    {
+      "titre": "J'attendrai",
+      "auteur": "Rina Ketty",
+      "année": 1938
+    },
+    {
+      "titre": "Les copains d'abord",
+      "auteur": "Georges Brassens",
+      "année": 1964
+    },
+    {
+      "titre": "La mauvaise réputation",
+      "auteur": "Georges Brassens",
+      "année": 1952
+    },
+    {
+      "titre": "Le gorille",
+      "auteur": "Georges Brassens",
+      "année": 1952
+    },
+    {
+      "titre": "Chanson pour l'Auvergnat",
+      "auteur": "Georges Brassens",
+      "année": 1964
+    },
+    {
+      "titre": "Pour un flirt",
+      "auteur": "Michel Delpech",
+      "année": 1971
+    },
+    {
+      "titre": "Il est cinq heures, Paris s'éveille",
+      "auteur": "Jacques Dutronc",
+      "année": 1968
+    },
+    {
+      "titre": "Les lacs du Connemara",
+      "auteur": "Michel Sardou",
+      "année": 1981
+    },
+    {
+      "titre": "La ballade des gens heureux",
+      "auteur": "Gérard Lenorman",
+      "année": 1976
+    },
+    {
+      "titre": "Paroles, Paroles",
+      "auteur": "Dalida & Alain Delon",
+      "année": 1973
+    },
+    {
+      "titre": "Je te promets",
+      "auteur": "Johnny Hallyday",
+      "année": 1986
+    },
+    {
+      "titre": "Quelque chose de Tennessee",
+      "auteur": "Johnny Hallyday",
+      "année": 1985
+    },
+    {
+      "titre": "Poupée de cire, poupée de son",
+      "auteur": "France Gall",
+      "année": 1965
+    },
+    {
+      "titre": "Ella, elle l'a",
+      "auteur": "France Gall",
+      "année": 1987
+    },
+    {
+      "titre": "Résiste",
+      "auteur": "France Gall",
+      "année": 1981
+    },
+    {
+      "titre": "L'amour est bleu",
+      "auteur": "Vicky Leandros",
+      "année": 1967
+    },
+    {
+      "titre": "Mistral gagnant",
+      "auteur": "Renaud",
+      "année": 1985
+    },
+    {
+      "titre": "Les yeux revolver",
+      "auteur": "Marc Lavoine",
+      "année": 1990
+    },
+    {
+      "titre": "Je te donne",
+      "auteur": "Jean-Jacques Goldman & Michael Jones",
+      "année": 1985
+    },
+    {
+      "titre": "Quand la musique est bonne",
+      "auteur": "Jean-Jacques Goldman",
+      "année": 1982
+    },
+    {
+      "titre": "Au bout de mes rêves",
+      "auteur": "Jean-Jacques Goldman",
+      "année": 1987
+    },
+    {
+      "titre": "Puisque tu pars",
+      "auteur": "Jean-Jacques Goldman",
+      "année": 1988
+    },
+    {
+      "titre": "Belle-île-en-Mer, Marie-Galante",
+      "auteur": "Laurent Voulzy",
+      "année": 1977
+    },
+    {
+      "titre": "Rockollection",
+      "auteur": "Laurent Voulzy",
+      "année": 1988
+    },
+    {
+      "titre": "C'est la ouate",
+      "auteur": "Caroline Loeb",
+      "année": 1986
+    },
+    {
+      "titre": "Pour que tu m'aimes encore",
+      "auteur": "Céline Dion",
+      "année": 1995
+    },
+    {
+      "titre": "Sous le vent",
+      "auteur": "Garou & Céline Dion",
+      "année": 2001
+    },
+    {
+      "titre": "L'envie d'aimer",
+      "auteur": "Daniel Levi",
+      "année": 2000
+    },
+    {
+      "titre": "La tribu de Dana",
+      "auteur": "Manau",
+      "année": 1998
+    },
+    {
+      "titre": "J'ai encore rêvé d'elle",
+      "auteur": "Il était une fois",
+      "année": 1985
+    },
+    {
+      "titre": "Moi, Lolita",
+      "auteur": "Alizée",
+      "année": 2000
+    },
+    {
+      "titre": "Joe le taxi",
+      "auteur": "Vanessa Paradis",
+      "année": 1987
+    },
+    {
+      "titre": "Aline",
+      "auteur": "Christophe",
+      "année": 1965
+    },
+    [
+      {
+        "titre": "Suicide social",
+        "auteur": "Orelsan",
+        "année": 2011
+      },
+      {
+        "titre": "Basique",
+        "auteur": "Orelsan",
+        "année": 2017
+      },
+      {
+        "titre": "La Terre est ronde",
+        "auteur": "Orelsan",
+        "année": 2018
+      },
+      {
+        "titre": "Cosmo",
+        "auteur": "Soprano",
+        "année": 2014
+      },
+      {
+        "titre": "Mon Everest",
+        "auteur": "Soprano",
+        "année": 2016
+      },
+      {
+        "titre": "Bella",
+        "auteur": "Maître Gims",
+        "année": 2013
+      },
+      {
+        "titre": "Sapés comme jamais",
+        "auteur": "Maître Gims",
+        "année": 2015
+      },
+      {
+        "titre": "Est-ce que tu m'aimes ?",
+        "auteur": "Maître Gims",
+        "année": 2015
+      },
+      {
+        "titre": "J'me tire",
+        "auteur": "Maître Gims",
+        "année": 2013
+      },
+      {
+        "titre": "La même",
+        "auteur": "Maître Gims & Vianney",
+        "année": 2018
+      },
+      {
+        "titre": "Ma direction",
+        "auteur": "Sexion d'Assaut",
+        "année": 2012
+      },
+      {
+        "titre": "Wati by Night",
+        "auteur": "Sexion d'Assaut",
+        "année": 2010
+      },
+      {
+        "titre": "Zoo",
+        "auteur": "Kaaris",
+        "année": 2012
+      },
+      {
+        "titre": "Dernière danse",
+        "auteur": "Indila",
+        "année": 2013
+      },
+      {
+        "titre": "J'ai cherché",
+        "auteur": "Amir",
+        "année": 2016
+      },
+      {
+        "titre": "Papaoutai",
+        "auteur": "Stromae",
+        "année": 2013
+      },
+      {
+        "titre": "Formidable",
+        "auteur": "Stromae",
+        "année": 2013
+      },
+      {
+        "titre": "Tous les mêmes",
+        "auteur": "Stromae",
+        "année": 2013
+      },
+      {
+        "titre": "Avenir",
+        "auteur": "Louane",
+        "année": 2015
+      },
+      {
+        "titre": "Si t'étais là",
+        "auteur": "Louane",
+        "année": 2017
+      },
+      {
+        "titre": "Je m'en vais",
+        "auteur": "Vianney",
+        "année": 2016
+      },
+      {
+        "titre": "On verra",
+        "auteur": "Nekfeu",
+        "année": 2015
+      },
+      {
+        "titre": "Dans la légende",
+        "auteur": "PNL",
+        "année": 2016
+      },
+      {
+        "titre": "À l'heure où je me couche",
+        "auteur": "PNL",
+        "année": 2015
+      },
+      {
+        "titre": "Comme prévu",
+        "auteur": "PNL",
+        "année": 2017
+      },
+      {
+        "titre": "Tout va bien",
+        "auteur": "Orelsan",
+        "année": 2014
+      },
+      {
+        "titre": "Réseaux",
+        "auteur": "Niska",
+        "année": 2017
+      },
+      {
+        "titre": "Bande organisée",
+        "auteur": "Jul, SCH, Kofs, Soso Maness, Elams, Solda, Houari",
+        "année": 2020
+      },
+      {
+        "titre": "Pookie",
+        "auteur": "Aya Nakamura",
+        "année": 2018
+      },
+      {
+        "titre": "Djadja",
+        "auteur": "Aya Nakamura",
+        "année": 2018
+      },
+      {
+        "titre": "Ma dope",
+        "auteur": "Nekfeu",
+        "année": 2015
+      },
+      {
+        "titre": "Macarena",
+        "auteur": "Damso",
+        "année": 2018
+      },
+      {
+        "titre": "Mosaïque solitaire",
+        "auteur": "Damso",
+        "année": 2017
+      },
+      {
+        "titre": "Médicament",
+        "auteur": "Niska",
+        "année": 2019
+      },
+      {
+        "titre": "Tchikita",
+        "auteur": "Jul",
+        "année": 2016
+      },
+      {
+        "titre": "La fête est finie",
+        "auteur": "Orelsan",
+        "année": 2017
+      },
+      {
+        "titre": "Tempête",
+        "auteur": "Nekfeu",
+        "année": 2015
+      },
+      {
+        "titre": "Amnésie",
+        "auteur": "Damso",
+        "année": 2018
+      },
+      {
+        "titre": "Commando",
+        "auteur": "Niska",
+        "année": 2017
+      },
+      {
+        "titre": "Wesh alors",
+        "auteur": "Jul",
+        "année": 2017
+      },
+      {
+        "titre": "Naha",
+        "auteur": "PNL",
+        "année": 2019
+      },
+      {
+        "titre": "Notes pour trop tard",
+        "auteur": "Orelsan",
+        "année": 2011
+      },
+      {
+        "titre": "Squaa",
+        "auteur": "Nekfeu",
+        "année": 2015
+      },
+      {
+        "titre": "Smog",
+        "auteur": "Damso",
+        "année": 2017
+      },
+      {
+        "titre": "Ma jolie",
+        "auteur": "Jul",
+        "année": 2014
+      },
+      {
+        "titre": "Salé",
+        "auteur": "Niska",
+        "année": 2018
+      },
+      {
+        "titre": "Ta fête",
+        "auteur": "Stromae",
+        "année": 2014
+      },
+      {
+        "titre": "Le monde ou rien",
+        "auteur": "PNL",
+        "année": 2015
+      },
+      {
+        "titre": "Copines",
+        "auteur": "Aya Nakamura",
+        "année": 2018
+      },
+      {
+        "titre": "Perplexe",
+        "auteur": "Damso",
+        "année": 2018
+      }
+    ]
+    
+  ]
+  
