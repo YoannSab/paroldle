@@ -1,13 +1,13 @@
-import { word_to_lemme_small } from "./word_to_lemme_small";
+import { word_to_lemme } from "./word_to_lemme_thresh_1.js";
 
 // Fonction pour calculer la similarité cosinus entre deux vecteurs
 function cosineSimilarity(model, wordA, wordB) {
     const vecA = model[wordA]
-        || (word_to_lemme_small[wordA] && model[word_to_lemme_small[wordA][0]])
+        || (word_to_lemme[wordA] && model[word_to_lemme[wordA][0]])
         || null;
 
     const vecB = model[wordB]
-        || (word_to_lemme_small[wordB] && model[word_to_lemme_small[wordB][0]])
+        || (word_to_lemme[wordB] && model[word_to_lemme[wordB][0]])
         || null;
 
     if (!vecA || !vecB) {

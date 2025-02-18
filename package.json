@@ -1,7 +1,7 @@
 {
   "name": "paroldle",
   "version": "0.1.0",
-  "homepage": "https://YoannSab.github.io/paroldle",
+  "homepage": "/paroldle",
   "private": true,
   "dependencies": {
     "@chakra-ui/icons": "^2.2.4",

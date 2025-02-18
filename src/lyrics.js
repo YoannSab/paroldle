@@ -1,18 +1,31 @@
 async function getSong(index) {
-    const response = await fetch('https://yoannsab.github.io/paroldle/chanson_list.json');
+    const response = await fetch("/paroldle/songs_lyrics.json")
     const data = await response.json();
-    
-    if (!index || index < 0 || index >= data.length) {
-        // index is the date of today
-        const today = new Date();
-        const day = today.getDate();
-        const month = today.getMonth() + 1;
-        index = (day * month) % data.length;
-
-    }
-
     return data[index];
 }
 
-export { getSong };
+async function getSongsInfo(songsFound) {
+    const response = await fetch('/paroldle/songs_lyrics.json');
+    const data = await response.json();
+  
+    const stylesCount = data.reduce((acc, song, index) => {
+      const style = song.style;
+      if (!acc[style]) {
+        acc[style] = { count: 0, indices: [], n_found: 0 };
+      }
+      acc[style].count++;
+      acc[style].indices.push(index);
+        if (songsFound.includes(index)) {
+            acc[style].n_found++;
+        }
+
+      return acc;
+    }, {});
+  
+    return stylesCount;
+  }
+  
+export { getSong, getSongsInfo };
+
+
 
