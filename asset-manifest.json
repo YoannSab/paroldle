@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/paroldle/static/js/main.f6a79f3d.js",
+    "main.js": "/paroldle/static/js/main.8cf05153.js",
     "index.html": "/paroldle/index.html",
-    "main.f6a79f3d.js.map": "/paroldle/static/js/main.f6a79f3d.js.map"
+    "main.8cf05153.js.map": "/paroldle/static/js/main.8cf05153.js.map"
   },
   "entrypoints": [
-    "static/js/main.f6a79f3d.js"
+    "static/js/main.8cf05153.js"
   ]
 }
