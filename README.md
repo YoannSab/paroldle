@@ -1,7 +1,7 @@
 # Paroldle
 
 Paroldle est un jeu en ligne inspiré de Wordle, où les joueurs doivent deviner le titre d'une chanson en révélant progressivement ses paroles. Développé en **React.js**, il est entièrement **statique** et ne nécessite aucun back-end.
-
+Il est disponible sur [ce lien](https://yoannsab.github.io/paroldle/).
 ## 🚀 Fonctionnalités
 
 - 🎵 Deviner le titre d'une chanson en révélant progressivement ses paroles
