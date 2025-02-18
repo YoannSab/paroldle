@@ -1,70 +1,64 @@
-# Getting Started with Create React App
+# Paroldle
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Paroldle est un jeu en ligne inspiré de Wordle, où les joueurs doivent deviner le titre d'une chanson en révélant progressivement ses paroles. Développé en **React.js**, il est entièrement **statique** et ne nécessite aucun back-end.
 
-## Available Scripts
+## 🚀 Fonctionnalités
 
-In the project directory, you can run:
+- 🎵 Deviner le titre d'une chanson en révélant progressivement ses paroles
+- 🔄 Interface interactive et réactive
+- 📜 Gestion dynamique des essais
+- 🌐 100 % statique et hébergé sur GitHub Pages ou tout autre service de déploiement statique
 
-### `npm start`
+## 📦 Installation
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Si vous souhaitez exécuter Paroldle en local :
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```bash
+# Cloner le dépôt
+git clone https://github.com/YoannSab/paroldle.git
+cd paroldle
 
-### `npm test`
+# Installer les dépendances
+npm install
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+# Lancer le serveur de développement
+npm start
+```
 
-### `npm run build`
+L'application sera accessible à l'adresse **http://localhost:3000/**.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🛠️ Technologies utilisées
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- **React.js** - Framework JavaScript pour les interfaces utilisateur
+- **Chakra UI** - Pour le style
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 📌 Déploiement
 
-### `npm run eject`
+Paroldle étant une application statique, elle peut être déployée sur GitHub Pages, Vercel, Netlify, ou tout autre service similaire.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Déploiement sur GitHub Pages
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+npm run build
+npm install -g gh-pages
+gh-pages -d build
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## 🤝 Contribuer
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Les contributions sont les bienvenues ! Si vous avez une idée d'amélioration ou souhaitez corriger un bug :
 
-## Learn More
+1. **Forkez** ce dépôt
+2. **Créez une branche** (`feature/ma-fonctionnalite`)
+3. **Commitez vos modifications** (`git commit -m 'Ajout d'une fonctionnalité'`)
+4. **Poussez sur votre branche** (`git push origin feature/ma-fonctionnalite`)
+5. **Ouvrez une Pull Request**
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 📜 Licence
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus d’informations.
 
-### Code Splitting
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+🎤 *À vous de jouer et de deviner le titre des chansons !* 🎶
 
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
