@@ -11,24 +11,23 @@ import {
   Progress,
   Checkbox,
   CheckboxGroup,
+  Tooltip,
 } from '@chakra-ui/react';
+import { SONG_AVAILABILITY_INITIAL, SONG_AVAILABILITY_INCREMENT, SONG_AVAILABILITY_THRESHOLD } from '../constants';
 
-const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
-  // État pour récupérer toutes les chansons depuis le JSON
+const Sidebar = ({ index, guessList, setIndex, foundSongs, trophies }) => {
   const [allSongs, setAllSongs] = useState([]);
 
   useEffect(() => {
     fetch('/paroldle/songs_lyrics.json')
       .then(response => response.json())
       .then(data => {
-        // On ajoute un attribut "index" à chaque chanson pour pouvoir la référencer
         const songsWithIndex = data.map((song, idx) => ({ ...song, index: idx }));
         setAllSongs(songsWithIndex);
       })
       .catch(err => console.error("Erreur lors du chargement des chansons:", err));
   }, []);
 
-  // Calcul des options disponibles pour chaque critère
   const availableLanguages = useMemo(() => {
     const langs = new Set();
     allSongs.forEach(song => {
@@ -56,14 +55,36 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
     return Array.from(stylesSet);
   }, [allSongs]);
 
-  // États pour les filtres sélectionnés
   const [selectedLanguages, setSelectedLanguages] = useState([]);
   const [selectedDecades, setSelectedDecades] = useState([]);
   const [selectedStyles, setSelectedStyles] = useState([]);
+  const [filterAvailable, setFilterAvailable] = useState(false);
 
-  // Calcul de la liste des chansons filtrées en fonction des filtres sélectionnés
+  // Calcul de la disponibilité des chansons par style
+  const availableSongsMap = useMemo(() => {
+    const map = {};
+    const unlockPercentage = Math.min(
+      100,
+      SONG_AVAILABILITY_INITIAL + Math.floor(trophies / SONG_AVAILABILITY_THRESHOLD) * SONG_AVAILABILITY_INCREMENT
+    );
+    const songsByStyle = {};
+    allSongs.forEach(song => {
+      if (song.style) {
+        if (!songsByStyle[song.style]) songsByStyle[song.style] = [];
+        songsByStyle[song.style].push(song);
+      }
+    });
+    for (const style in songsByStyle) {
+      const songsOfStyle = songsByStyle[style].sort((a, b) => a.index - b.index);
+      const allowedCount = Math.ceil(songsOfStyle.length * unlockPercentage / 100);
+      map[style] = { allowed: new Set(songsOfStyle.slice(0, allowedCount).map(s => s.index)), songsOfStyle, allowedCount };
+    }
+    return map;
+  }, [allSongs, trophies]);
+
+  // Filtre global appliquant également le filtre "disponible uniquement"
   const filteredSongs = useMemo(() => {
-    return allSongs.filter(song => {
+    let songs = allSongs.filter(song => {
       if (selectedLanguages.length > 0 && !selectedLanguages.includes(song.lang)) {
         return false;
       }
@@ -75,17 +96,33 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
       }
       return true;
     });
-  }, [allSongs, selectedLanguages, selectedDecades, selectedStyles]);
+    if (filterAvailable) {
+      songs = songs.filter(song => availableSongsMap[song.style]?.allowed.has(song.index));
+    }
+    return songs;
+  }, [allSongs, selectedLanguages, selectedDecades, selectedStyles, filterAvailable, availableSongsMap]);
 
-  // Calcul du pourcentage de chansons trouvées parmi celles filtrées
+
+  // Calcul pour obtenir le nombre de trophées requis pour débloquer une chanson verrouillée
+  const getTrophiesRequiredForSong = (song) => {
+    const styleInfo = availableSongsMap[song.style];
+    if (!styleInfo) return 0;
+    const { songsOfStyle } = styleInfo;
+    const rank = songsOfStyle.findIndex(s => s.index === song.index);
+    const L = songsOfStyle.length;
+    const requiredPerc = ((rank + 1) / L) * 100;
+    const requiredK = Math.ceil((requiredPerc - SONG_AVAILABILITY_INITIAL) / SONG_AVAILABILITY_INCREMENT);
+    const requiredTrophies = requiredK * SONG_AVAILABILITY_THRESHOLD;
+    return requiredTrophies - trophies;
+  };
+
   const progressValue =
     filteredSongs.length > 0
       ? (filteredSongs.filter(song => foundSongs.includes(song.index)).length / filteredSongs.length) * 100
       : 0;
 
   return (
-    <Box p={{ base: 4, md: 5 }} maxW="350px" mx="auto" mt={5}>
-      {/* En-tête avec le titre et l'historique des essais */}
+    <Box maxW="350px" mx="auto" h="100%">
       <Box bg="rgb(255,245,204)" p={6} borderRadius="3xl" textAlign="center" boxShadow="lg">
         <Heading size="lg" mb={3} color="black">
           🎵 Paroldle
@@ -94,6 +131,7 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
           Chanson n° {index + 1}
         </Heading>
         <Divider width="60%" borderWidth="2px" borderColor="black" mx="auto" mb={4} />
+        {/* La partie sur les trophées a été déplacée dans App.js */}
         {guessList.length > 0 && (
           <Box mb={4}>
             <Text fontSize="lg" fontWeight="bold" color="black" mb={2}>
@@ -130,13 +168,12 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
         )}
       </Box>
 
-      {/* Section des filtres */}
+      {/* Nouveaux filtres */}
       <Box bg="rgb(163,193,224)" p={6} borderRadius="3xl" boxShadow="md" mt={6} color="black">
         <Heading size="lg" mb={4} textAlign="center" color="black">
           Filtres
         </Heading>
         <Stack spacing={4}>
-          {/* Filtre par langue */}
           <Box>
             <Text fontWeight="bold" mb={2}>
               Langue
@@ -151,8 +188,6 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
               </Stack>
             </CheckboxGroup>
           </Box>
-
-          {/* Filtre par décennies */}
           <Box>
             <Text fontWeight="bold" mb={2}>
               Décennies
@@ -170,8 +205,6 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
               </Stack>
             </CheckboxGroup>
           </Box>
-
-          {/* Filtre par style */}
           <Box>
             <Text fontWeight="bold" mb={2}>
               Style
@@ -186,10 +219,15 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
               </Stack>
             </CheckboxGroup>
           </Box>
+          <Divider />
+          <Box alignItems={"center"} textAlign={"center"}>
+            <Checkbox isChecked={filterAvailable} onChange={(e) => setFilterAvailable(e.target.checked)}>
+              Chansons débloquées
+            </Checkbox>
+          </Box>
         </Stack>
       </Box>
 
-      {/* Liste des chansons filtrées avec barre de progression */}
       <Box bg="rgb(240,240,240)" p={6} borderRadius="3xl" boxShadow="md" mt={6} color="black">
         <Heading size="lg" mb={4} textAlign="center">
           Chansons
@@ -205,9 +243,9 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
         <Grid
           templateColumns="repeat(auto-fill, minmax(40px, 1fr))"
           gap={2}
-          maxH="600px"
+          maxH="400px"
           overflowY="auto"
-          pr="2"  // Décale la scrollbar un peu à droite
+          pr="2"
           css={{
             '&::-webkit-scrollbar': { width: '6px' },
             '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '3px' },
@@ -215,36 +253,49 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
             '&::-webkit-scrollbar-thumb:hover': { background: '#555' },
           }}
         >
-          {filteredSongs.map((song) => (
-            <Tag
-              key={song.index}
-              size="md"
-              variant="solid"
-              cursor="pointer"
-              onClick={() => setIndex(song.index)}
-              bg={
-                song.index === index
-                  ? 'pink.300'
-                  : foundSongs.includes(song.index)
-                  ? 'green.300'
-                  : 'gray.300'
-              }
-              _hover={{
-                bg:
-                  song.index === index
-                    ? 'pink.400'
-                    : foundSongs.includes(song.index)
-                    ? 'green.400'
-                    : 'gray.400',
-              }}
-              display="flex"
-              justifyContent="center"
-              alignItems="center"
-              textAlign="center"
-            >
-              {song.index + 1}
-            </Tag>
-          ))}
+          {filteredSongs.map((song) => {
+            const styleInfo = availableSongsMap[song.style];
+            const available = styleInfo ? styleInfo.allowed.has(song.index) : true;
+            let bgColor, hoverColor;
+            if (song.index === index) {
+              bgColor = 'pink.300';
+              hoverColor = 'pink.400';
+            } else if (foundSongs.includes(song.index)) {
+              bgColor = 'green.300';
+              hoverColor = 'green.400';
+            } else if (available) {
+              bgColor = 'gray.500';
+              hoverColor = 'gray.700';
+            } else {
+              bgColor = 'gray.300';
+              hoverColor = 'gray.300';
+            }
+            const tooltipLabel = available
+              ? ''
+              : `Il vous manque ${getTrophiesRequiredForSong(song)} trophées`;
+            return (
+              <Tooltip
+                key={song.index}
+                label={tooltipLabel}
+                hasArrow
+              >
+                <Tag
+                  size="md"
+                  variant="solid"
+                  cursor={available ? "pointer" : "not-allowed"}
+                  onClick={() => available && setIndex(song.index)}
+                  bg={bgColor}
+                  _hover={{ bg: hoverColor }}
+                  display="flex"
+                  justifyContent="center"
+                  alignItems="center"
+                  textAlign="center"
+                >
+                  {song.index + 1}
+                </Tag>
+              </Tooltip>
+            );
+          })}
         </Grid>
       </Box>
     </Box>

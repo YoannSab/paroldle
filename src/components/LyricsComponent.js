@@ -1,3 +1,4 @@
+// LyricsComponent.js
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Box, Text, IconButton, Heading, Flex } from "@chakra-ui/react";
 import { FaLightbulb } from "react-icons/fa";
@@ -5,7 +6,7 @@ import {
   stringToList,
   isAlphanumeric,
   matchWord,
-} from "./lyricsUtils";
+} from "../lyricsUtils";
 
 const LyricsComponent = ({
   song,
@@ -18,15 +19,15 @@ const LyricsComponent = ({
   setGuessFeedback,
   isReady,
   setIsReady,
-  youtubeVideoId, // nouveau prop
-  autoplay, // nouveau prop
+  youtubeVideoId,
+  autoplay,
+  gameMode,
+  setShowHardcorePrompt,
 }) => {
-  // Création des listes de tokens pour le titre, les paroles et l'artiste
   const title = useMemo(() => (song ? stringToList(song.title, song.lang) : []), [song]);
   const lyrics = useMemo(() => (song ? stringToList(song.lyrics, song.lang) : []), [song]);
   const artist = useMemo(() => (song ? stringToList(song.author, song.lang) : []), [song]);
 
-  // Calcul des indices initiaux pour les tokens non alphanumériques
   const initialFound = useMemo(() => {
     const computeFound = (list) =>
       list.reduce((acc, word, i) => {
@@ -40,7 +41,6 @@ const LyricsComponent = ({
     };
   }, [title, lyrics, artist]);
 
-  // États locaux pour suivre la progression
   const [found, setFound] = useState({ title: [], lyrics: [], artist: [] });
   const [partial, setPartial] = useState({ title: {}, lyrics: {}, artist: {} });
   const [currentFound, setCurrentFound] = useState({
@@ -49,14 +49,8 @@ const LyricsComponent = ({
     artist: [],
   });
 
-  // État local pour les clues (5 par défaut)
-  const [clues, setClues] = useState(1000000);
+  const [clues, setClues] = useState(5);
 
-  /**
-   * Lors du chargement d'une chanson, on tente de récupérer la progression
-   * sauvegardée dans le localStorage (identifiée par index).
-   * Si aucune donnée n'est trouvée, on initialise avec les valeurs par défaut.
-   */
   useEffect(() => {
     if (song) {
       setIsReady(false);
@@ -67,7 +61,7 @@ const LyricsComponent = ({
       setPartial(
         storedPartial ? JSON.parse(storedPartial) : { title: {}, lyrics: {}, artist: {} }
       );
-      setClues(storedClues ? parseInt(storedClues, 10) : 100000);
+      setClues(storedClues ? parseInt(storedClues, 10) : 5);
       setCurrentFound({ title: [], lyrics: [], artist: [] });
       setGuessFeedback({ perfect_match: 0, partial_match: 0 });
       setIsReady(true);
@@ -75,7 +69,6 @@ const LyricsComponent = ({
     // eslint-disable-next-line
   }, [song, initialFound]);
 
-  // Persistance de l'état "found" dans le localStorage
   useEffect(() => {
     if (isReady && song) {
       localStorage.setItem(`paroldle_found_${index}`, JSON.stringify(found));
@@ -83,7 +76,6 @@ const LyricsComponent = ({
     // eslint-disable-next-line
   }, [found]);
 
-  // Persistance de l'état "partial" dans le localStorage
   useEffect(() => {
     if (isReady && song) {
       localStorage.setItem(
@@ -94,14 +86,12 @@ const LyricsComponent = ({
     // eslint-disable-next-line
   }, [partial]);
 
-  // Persistance du nombre de clues dans le localStorage
   useEffect(() => {
     if (isReady && song) {
       localStorage.setItem(`paroldle_clues_${index}`, clues);
     }
   }, [clues]);
 
-  // Fonction qui met à jour les indices trouvés pour une section, en détectant également les partial matches
   const updateSectionFound = useCallback(
     (wordList, currentFoundIndices, currentFoundPartial) => {
       const newFoundIndices = [];
@@ -124,7 +114,6 @@ const LyricsComponent = ({
     [guess]
   );
 
-  // Mise à jour des indices trouvés à chaque modification du "guess"
   useEffect(() => {
     if (!guess || !song) return;
 
@@ -168,29 +157,39 @@ const LyricsComponent = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guess]);
 
-  // Déclenche la victoire si tous les mots du titre ont été trouvés
+  // Vérification de la condition de victoire selon le mode de jeu
   useEffect(() => {
-    if (isReady && !victory && title.length > 0 && found.title.length === title.length) {
-      setVictory(true);
+    if (!isReady || victory !== "") return;
+
+    if (gameMode === "hardcore") {
+      if (
+        title.length > 0 &&
+        found.title.length === title.length &&
+        found.lyrics.length === lyrics.length &&
+        found.artist.length === artist.length
+      ) {
+        setVictory("hardcore");
+      }
+    } else {
+      if (title.length > 0 && found.title.length === title.length) {
+        setShowHardcorePrompt(true);
+      }
     }
-  }, [found.title, title, setVictory, isReady, victory]);
+  }, [found.title, found.lyrics, found.artist, gameMode, victory]);
 
   // --- Gestion du Clue ---
 
-  // Calcule le nombre total de mots alphanumériques dans les paroles
   const totalLyricsAlpha = useMemo(
     () => lyrics.filter((word) => isAlphanumeric(word)).length,
     [lyrics]
   );
 
-  // Calcule le nombre de mots alphanumériques trouvés dans les paroles
   const foundLyricsAlpha = useMemo(
     () =>
       found.lyrics.filter((i) => isAlphanumeric(lyrics[i])).length,
     [found.lyrics, lyrics]
   );
 
-  // Révèle un mot aléatoire parmi les plus longs (hors titre) et décrémente le nombre de clues
   const handleHelp = useCallback(() => {
     if (!song || clues <= 0) return;
     const candidateIndices = lyrics.reduce((acc, word, i) => {
@@ -204,24 +203,18 @@ const LyricsComponent = ({
       return acc;
     }, []);
 
-    if (candidateIndices.length === 0) return; // Tous les mots sont déjà révélés
+    if (candidateIndices.length === 0) return;
 
-    // Parmi ces candidats, ne conserver que ceux ayant la longueur maximale
     const maxLength = Math.max(...candidateIndices.map(i => lyrics[i].length));
     const filteredCandidates = candidateIndices.filter(i => lyrics[i].length === maxLength);
 
-    // Choisir aléatoirement un indice parmi les candidats filtrés
     const randomIndex =
       filteredCandidates[Math.floor(Math.random() * filteredCandidates.length)];
 
     setGuess(lyrics[randomIndex]);
-
-    // Décrémente le nombre de clues
     setClues(prev => prev - 1);
   }, [song, lyrics, found.lyrics, clues, title]);
 
-  // Création d'une structure "lignes" à partir de "lyrics"
-  // On regroupe les tokens entre les sauts de ligne ("\n") en gardant leur index d'origine.
   const lyricLines = useMemo(() => {
     const lines = [];
     let currentLine = [];
@@ -237,7 +230,6 @@ const LyricsComponent = ({
     return lines;
   }, [lyrics]);
 
-  // Divise les lignes en deux colonnes égales
   const midLine = Math.ceil(lyricLines.length / 2);
   const leftColumn = lyricLines.slice(0, midLine);
   const rightColumn = lyricLines.slice(midLine);
@@ -248,7 +240,6 @@ const LyricsComponent = ({
 
   return (
     <Box position="relative" p={4} fontFamily="Montserrat, sans-serif">
-      {/* Icône Clue et compteur en haut à droite */}
       <Box
         position="absolute"
         top={4}
@@ -285,12 +276,11 @@ const LyricsComponent = ({
             justifyContent="center"
             fontSize="xs"
           >
-            ∞{/*clues*/}
+            {clues}
           </Box>
         </Box>
       </Box>
 
-      {/* Affichage du titre */}
       <Box mb={2} textAlign="center">
         <Heading as="h1" fontSize="4xl">
           {title.map((word, i) => (
@@ -299,7 +289,7 @@ const LyricsComponent = ({
               prevWord={title[i - 1]}
               word={word}
               isCurrentGuess={currentFound.title.includes(i)}
-              found={found.title.includes(i) || showAllSong || victory}
+              found={found.title.includes(i) || showAllSong || victory !== ""}
               partialMatch={partial.title[i] ? partial.title[i][0] : null}
               fontSize="inherit"
             />
@@ -307,7 +297,6 @@ const LyricsComponent = ({
         </Heading>
       </Box>
 
-      {/* Affichage de l'artiste */}
       <Box mb={4} textAlign="center">
         <Text fontSize="2xl">
           {artist.map((word, i) => (
@@ -316,7 +305,7 @@ const LyricsComponent = ({
               prevWord={artist[i - 1]}
               word={word}
               isCurrentGuess={currentFound.artist.includes(i)}
-              found={found.artist.includes(i) || showAllSong || victory}
+              found={found.artist.includes(i) || showAllSong || victory !== ""}
               partialMatch={partial.artist[i] ? partial.artist[i][0] : null}
               fontSize="inherit"
             />
@@ -324,14 +313,12 @@ const LyricsComponent = ({
         </Text>
       </Box>
 
-      {/* Affichage de la vidéo YouTube, placée sous le titre et l'artiste */}
-      {victory && youtubeVideoId && (
+      {victory !== "" && youtubeVideoId && (
         <Box mt={4} mx="auto" maxW="300px">
           <iframe
             width="300"
             height="170"
-            src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=${autoplay ? 1 : 0}` }
-            frameBorder="0"
+            src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=${autoplay ? 1 : 0}`}
             allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             title="Lecture de la musique"
@@ -339,9 +326,7 @@ const LyricsComponent = ({
         </Box>
       )}
 
-      {/* Affichage des paroles en deux colonnes centrées */}
       <Flex justifyContent="center" mt={4}>
-        {/* Colonne de gauche */}
         <Box textAlign="left" pr={100}>
           {leftColumn.map((line, lineIndex) => (
             <Box key={`left-line-${lineIndex}`}>
@@ -364,7 +349,6 @@ const LyricsComponent = ({
           ))}
         </Box>
 
-        {/* Colonne de droite */}
         <Box textAlign="left" pl={2}>
           {rightColumn.map((line, lineIndex) => (
             <Box key={`right-line-${lineIndex}`}>
@@ -395,11 +379,10 @@ const LyricWords = memo(
   ({ prevWord, word, isCurrentGuess, found, partialMatch, fontSize }) => {
     const [showWordLength, setShowWordLength] = useState(false);
 
-    // Calcul de la marge à gauche en fonction du mot précédent
     const marginLeft = useMemo(() => {
       return !prevWord || prevWord === "\n" || (!isAlphanumeric(word) && !`("&-)`.includes(word))
         ? 0
-        : 2;
+        : 1.5;
     }, [prevWord, word]);
 
     const handleClick = () => {
@@ -420,9 +403,9 @@ const LyricWords = memo(
           textAlign="center"
           borderRadius="md"
           height={"1.5ch"}
-          transform={"translateY(3px)"}
+          transform={"translateY(5px)"}
         >
-          <Text fontSize={fontSize ? fontSize : "md"} fontFamily="inherit" transform={"translateY(-3px)"}>
+          <Text fontSize={fontSize ? fontSize : "md"} fontFamily="inherit" transform={"translateY(-5px)"}>
             {word}
           </Text>
         </Box>
@@ -444,7 +427,7 @@ const LyricWords = memo(
         textAlign="center"
         borderRadius="md"
         transform="translateY(3px)"
-        width={partialMatch ? `${partialMatch.length +1}ch` : `${word.length}ch`}
+        width={partialMatch ? `${partialMatch.length}ch` : `${word.length - 0.3 * word.length}ch`}
         height="1.5ch"
       >
         {showWordLength && (
