@@ -1,6 +1,5 @@
-// LyricsComponent.js
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { Box, Text, IconButton, Heading, Flex } from "@chakra-ui/react";
+import { Box, Text, IconButton, Heading, Flex, Button } from "@chakra-ui/react";
 import { FaLightbulb } from "react-icons/fa";
 import {
   stringToList,
@@ -8,11 +7,13 @@ import {
   matchWord,
 } from "../lyricsUtils";
 
+import { N_CLUES, CLUE_COST_COUNT, CLUE_COST_TROPHIES, N_CLUE_BUY } from "../constants";
+
 const LyricsComponent = ({
   song,
   index,
-  victory,
-  setVictory,
+  gameState,
+  setGameState,
   guess,
   setGuess,
   showAllSong,
@@ -21,8 +22,8 @@ const LyricsComponent = ({
   setIsReady,
   youtubeVideoId,
   autoplay,
-  gameMode,
-  setShowHardcorePrompt,
+  trophies,
+  setTrophies,
 }) => {
   const title = useMemo(() => (song ? stringToList(song.title, song.lang) : []), [song]);
   const lyrics = useMemo(() => (song ? stringToList(song.lyrics, song.lang) : []), [song]);
@@ -49,7 +50,7 @@ const LyricsComponent = ({
     artist: [],
   });
 
-  const [clues, setClues] = useState(5);
+  const [clues, setClues] = useState(N_CLUES);
 
   useEffect(() => {
     if (song) {
@@ -61,7 +62,7 @@ const LyricsComponent = ({
       setPartial(
         storedPartial ? JSON.parse(storedPartial) : { title: {}, lyrics: {}, artist: {} }
       );
-      setClues(storedClues ? parseInt(storedClues, 10) : 5);
+      setClues(storedClues ? parseInt(storedClues, 10) : N_CLUES);
       setCurrentFound({ title: [], lyrics: [], artist: [] });
       setGuessFeedback({ perfect_match: 0, partial_match: 0 });
       setIsReady(true);
@@ -159,23 +160,23 @@ const LyricsComponent = ({
 
   // Vérification de la condition de victoire selon le mode de jeu
   useEffect(() => {
-    if (!isReady || victory !== "") return;
+    if (!isReady || (!gameState.startsWith("guessing"))) return;
 
-    if (gameMode === "hardcore") {
+    if (gameState === "guessing_hardcore") {
       if (
         title.length > 0 &&
         found.title.length === title.length &&
         found.lyrics.length === lyrics.length &&
         found.artist.length === artist.length
       ) {
-        setVictory("hardcore");
+        setGameState("victory_hardcore");
       }
-    } else {
+    } else if (gameState === "guessing_normal") {
       if (title.length > 0 && found.title.length === title.length) {
-        setShowHardcorePrompt(true);
+        setGameState("victory_normal");
       }
     }
-  }, [found.title, found.lyrics, found.artist, gameMode, victory]);
+  }, [found.title, found.lyrics, found.artist, gameState, title.length, lyrics.length, artist.length, isReady]);
 
   // --- Gestion du Clue ---
 
@@ -215,6 +216,16 @@ const LyricsComponent = ({
     setClues(prev => prev - 1);
   }, [song, lyrics, found.lyrics, clues, title]);
 
+  // Fonction pour acheter des indices en échange de trophées
+  const handleBuyClues = useCallback(() => {
+    if (trophies < CLUE_COST_TROPHIES) {
+      alert("Pas assez de trophées pour acheter des indices.");
+      return;
+    }
+    setTrophies(prev => prev - CLUE_COST_TROPHIES);
+    setClues(prev => prev + CLUE_COST_COUNT);
+  }, [trophies, setTrophies, setClues]);
+
   const lyricLines = useMemo(() => {
     const lines = [];
     let currentLine = [];
@@ -240,46 +251,59 @@ const LyricsComponent = ({
 
   return (
     <Box position="relative" p={4} fontFamily="Montserrat, sans-serif">
-      <Box
-        position="absolute"
-        top={4}
-        right={4}
-        display="flex"
-        alignItems="center"
-        gap={3}
-        zIndex={10}
-      >
-        <Text fontWeight="bold" px={3} py={1} borderRadius="full" bg="whiteAlpha.800">
-          {foundLyricsAlpha} / {totalLyricsAlpha}
-        </Text>
-        <Box position="relative">
-          <IconButton
-            icon={<FaLightbulb />}
-            onClick={handleHelp}
-            variant="ghost"
-            size="lg"
-            colorScheme="teal"
-            isDisabled={clues <= 0}
-            aria-label="Clue"
-          />
-          <Box
-            position="absolute"
-            top="-4px"
-            right="-4px"
-            bg="teal.500"
-            color="white"
-            borderRadius="full"
-            width="20px"
-            height="20px"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            fontSize="xs"
-          >
-            {clues}
+      <Box position="absolute" top={4} right={4} zIndex={10}>
+        <Flex
+          align="center"
+          gap={4}
+          bg="whiteAlpha.900"
+          p={3}
+          borderRadius="md"
+          boxShadow="md"
+        >
+          <Text fontWeight="bold" fontSize="md">
+            {foundLyricsAlpha} / {totalLyricsAlpha}
+          </Text>
+          <Box position="relative">
+            <IconButton
+              icon={<FaLightbulb />}
+              onClick={handleHelp}
+              variant="outline"
+              size="md"
+              colorScheme="teal"
+              aria-label="Obtenir un indice"
+              isDisabled={clues <= 0}
+            />
+            <Box
+              position="absolute"
+              top={-1}
+              right={-1}
+              bg="teal.500"
+              color="white"
+              borderRadius="full"
+              w={5}
+              h={5}
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              fontSize="xs"
+            >
+              {clues}
+            </Box>
           </Box>
-        </Box>
+          {clues === 0 && (
+            <Button
+              size="sm"
+              colorScheme="teal"
+              onClick={handleBuyClues}
+              isDisabled={trophies < CLUE_COST_TROPHIES}
+              variant="solid"
+            >
+              Acheter {N_CLUE_BUY} 💡 pour {CLUE_COST_TROPHIES}🏆
+            </Button>
+          )}
+        </Flex>
       </Box>
+
 
       <Box mb={2} textAlign="center">
         <Heading as="h1" fontSize="4xl">
@@ -289,7 +313,7 @@ const LyricsComponent = ({
               prevWord={title[i - 1]}
               word={word}
               isCurrentGuess={currentFound.title.includes(i)}
-              found={found.title.includes(i) || showAllSong || victory !== ""}
+              found={found.title.includes(i) || showAllSong || !gameState.startsWith("guessing")}
               partialMatch={partial.title[i] ? partial.title[i][0] : null}
               fontSize="inherit"
             />
@@ -298,22 +322,22 @@ const LyricsComponent = ({
       </Box>
 
       <Box mb={4} textAlign="center">
-        <Text fontSize="2xl">
+        <Heading as={"h2"} fontSize="2xl">
           {artist.map((word, i) => (
             <LyricWords
               key={`artist-${i}`}
               prevWord={artist[i - 1]}
               word={word}
               isCurrentGuess={currentFound.artist.includes(i)}
-              found={found.artist.includes(i) || showAllSong || victory !== ""}
+              found={found.artist.includes(i) || showAllSong || !gameState.startsWith("guessing")}
               partialMatch={partial.artist[i] ? partial.artist[i][0] : null}
               fontSize="inherit"
             />
           ))}
-        </Text>
+        </Heading>
       </Box>
 
-      {victory !== "" && youtubeVideoId && (
+      {!gameState.startsWith("guessing") && youtubeVideoId && (
         <Box mt={4} mx="auto" maxW="300px">
           <iframe
             width="300"

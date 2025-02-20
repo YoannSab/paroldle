@@ -1,4 +1,3 @@
-// App.js
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Container,
@@ -29,7 +28,6 @@ const App = () => {
   const [song, setSong] = useState(null);
   const [inputWord, setInputWord] = useState('');
   const [lastWord, setLastWord] = useState('');
-  const [victory, setVictory] = useState(''); // '' | 'normal' | 'hardcore'
   const [showVictory, setShowVictory] = useState(false);
   const [showAllSong, setShowAllSong] = useState(false);
   const [guess, setGuess] = useState('');
@@ -37,12 +35,13 @@ const App = () => {
   const [index, setIndex] = useState(null);
   const [guessFeedback, setGuessFeedback] = useState({});
   const [isReady, setIsReady] = useState(false);
-  const [foundSongs, setFoundSongs] = useState([]);
+  const [foundSongs, setFoundSongs] = useState({});
   // Nouvel état pour l'ID de la vidéo 
   const [youtubeVideoId, setYoutubeVideoId] = useState(null);
   const [autoplay, setAutoplay] = useState(false);
-  // Mode de jeu : "normal" ou "hardcore"
-  const [gameMode, setGameMode] = useState("normal");
+  // Remplacement de victory et gameMode par un seul état gameState
+  // Valeurs possibles : "guessing_normal", "victory_normal", "guessing_hardcore", "victory_hardcore", "abandonned_normal", "abandonned_hardcore"
+  const [gameState, setGameState] = useState("guessing_normal");
   // Modal pour demander le passage en mode hardcore
   const [showHardcorePrompt, setShowHardcorePrompt] = useState(false);
   // État pour les trophées
@@ -78,6 +77,11 @@ const App = () => {
     if (storedTrophies) {
       setTrophies(parseInt(storedTrophies, 10));
     }
+
+    // Charger le gameState sauvegardé
+    const storedGameState = localStorage.getItem(`paroldle_gameState_${storedIndex}`);
+    setGameState(storedGameState || 'guessing_normal');
+
     // eslint-disable-next-line
   }, []);
 
@@ -89,19 +93,20 @@ const App = () => {
     if (index == null) return;
     localStorage.setItem('paroldle_index', index);
     const storedGuessList = localStorage.getItem(`paroldle_guessList_${index}`);
+    setGuessList(storedGuessList ? JSON.parse(storedGuessList) : []);
+
+    const storedGameState = localStorage.getItem(`paroldle_gameState_${index}`);
+    setGameState(storedGameState || 'guessing_normal');
 
     setShowAllSong(false);
-    setVictory('');
     setIsReady(false);
     setGuess('');
     setLastWord('');
-    setGuessList(storedGuessList ? JSON.parse(storedGuessList) : []);
+
     getSong(index).then((data) => {
       setSong({ ...data, index });
     });
     setYoutubeVideoId(null);
-    // Réinitialiser le mode de jeu pour chaque nouvelle chanson
-    setGameMode("normal");
     // eslint-disable-next-line
   }, [index]);
 
@@ -127,9 +132,15 @@ const App = () => {
     localStorage.setItem('paroldle_trophies', trophies);
   }, [trophies]);
 
+  // Sauvegarde automatique du gameState
+  useEffect(() => {
+    if (index == null) return;
+    localStorage.setItem(`paroldle_gameState_${index}`, gameState);
+  }, [gameState]);
+
   useEffect(() => {
     // On s'assure que la chanson est chargée et qu'elle correspond bien à l'index actuel
-    if (victory !== "" && song && song.index === index) {
+    if ((gameState.startsWith("victory") || gameState.startsWith("abandonned")) && song && song.index === index) {
       const storedYoutubeId = localStorage.getItem(`paroldle_youtube_${index}`);
       if (storedYoutubeId) {
         setYoutubeVideoId(storedYoutubeId);
@@ -151,214 +162,229 @@ const App = () => {
         })
         .catch(err => console.error("Erreur lors de la recherche YouTube:", err));
     }
-  }, [song, victory, index]);
+  }, [song, gameState, index]);
 
   // Lorsqu'une victoire est déclenchée…
   useEffect(() => {
-    if (victory !== '' && !foundSongs.includes(index)) {
-      if (victory === "normal") {
-          // Si l'utilisateur a abandonné le mode hardcore, on confirme la victoire normale
-          setShowVictory(true);
-          setFoundSongs((prev) => [...prev, index]);
-          setTrophies((prev) => prev + NORMAL_VICTORY_BASE_POINTS);
-
-      } else if (victory === "hardcore") {
-        // Victoire finale en mode hardcore
+    if (!isReady || !song || index === null) return;
+    
+    setFoundSongs((prev) => {
+      // Ne pas modifier l'état si ce n'est pas nécessaire
+      if (gameState === "victory_normal" && !Object.hasOwn(prev, index)) {
         setShowVictory(true);
-        setFoundSongs((prev) => [...prev, index]);
-        setTrophies((prev) => prev + NORMAL_VICTORY_BASE_POINTS + HARDCORE_VICTORY_BONUS);
+        setTrophies((prevTrophies) => prevTrophies + NORMAL_VICTORY_BASE_POINTS);
+        setShowHardcorePrompt(true); // Proposer le mode hardcore
+        return { ...prev, [index]: "normal" };
+  
+      } else if (gameState === "victory_hardcore" && prev[index] === "normal") {
+        setShowVictory(true);
+        setTrophies((prevTrophies) => prevTrophies + HARDCORE_VICTORY_BONUS);
+        return { ...prev, [index]: "hardcore" };
+  
+      } else if (gameState === "abandonned_normal" && !Object.hasOwn(prev, index)) {
+        return { ...prev, [index]: "abandonned" };
       }
+  
+      return prev; // Pas de changement si aucune des conditions n'est remplie
+    });
+  
+  }, [gameState]);
+
+  
+const handleClickEnter = useCallback(() => {
+  if (!inputWord) return;
+  const trimmed = inputWord.trim();
+  if (trimmed && trimmed !== guess) {
+    if (trimmed === "sudo reveal") {
+      // En mode normal, le sudo reveal force la victoire normale
+      setGameState("victory_normal");
+    } else {
+      const parts = trimmed.split(' ');
+      parts.forEach((part) => {
+        setTimeout(() => {
+          setGuess(part);
+          setLastWord(part);
+          setGuessList((prev) => [part, ...prev]);
+        }, 0);
+      });
     }
-    // eslint-disable-next-line
-  }, [victory]);
+  }
+  setInputWord('');
+}, [inputWord, guess]);
 
-  const handleClickEnter = useCallback(() => {
-    if (!inputWord) return;
-    const trimmed = inputWord.trim();
-    if (trimmed && trimmed !== guess) {
-      if (trimmed === "sudo reveal") {
-        setVictory("normal");
-      } else {
-        const parts = trimmed.split(' ');
-        parts.forEach((part) => {
-          setTimeout(() => {
-            setGuess(part);
-            setLastWord(part);
-            setGuessList((prev) => [part, ...prev]);
-          }, 0);
-        });
-      }
-    }
-    setInputWord('');
-  }, [inputWord, guess]);
+const handleClickShowSong = useCallback(() => {
+  // Affichage complet uniquement en mode normal terminé
+  if ((gameState === "victory_normal" || gameState.startsWith("abandonned"))) {
+    setShowAllSong((prev) => !prev);
+  }
+}, [gameState]);
 
-  const handleClickShowSong = useCallback(() => {
-    if (victory !== '' && gameMode === "normal") {
-      setShowAllSong((prev) => !prev);
-    }
-  }, [victory, gameMode]);
+// Fonction de reset qui efface la base de données locale et réinitialise les états
+const resetDB = () => {
+  Object.keys(localStorage)
+    .filter((key) => key.startsWith('paroldle_'))
+    .forEach((key) => localStorage.removeItem(key));
+};
 
-  // Fonction de reset qui efface la base de données locale et réinitialise les états
-  const resetDB = () => {
-    Object.keys(localStorage)
-      .filter((key) => key.startsWith('paroldle_'))
-      .forEach((key) => localStorage.removeItem(key));
-  };
+// Bouton pour abandonner la partie (normal ou hardcore)
+const handleAbandon = () => {
+  if (gameState === "guessing_normal") {
+    setGameState("abandonned_normal");
+  } else if (gameState === "guessing_hardcore") {
+    setGameState("abandonned_hardcore");
+  }
+};
 
-  // Bouton pour abandonner le mode hardcore
-  const handleAbandonHardcore = () => {
-    setGameMode("normal");
-    setVictory("normal");
-  };
-
-  return (
-    <>
-      <FestiveModal isOpen={showVictory} onClose={() => setShowVictory(false)} victory={victory} />
-      <HardcorePromptModal
-        isOpen={showHardcorePrompt}
-        onConfirm={() => {
-          // Passage en mode hardcore
-          setGameMode("hardcore");
-          setShowHardcorePrompt(false);
-          // Réinitialiser la victoire pour continuer en mode hardcore
-          setVictory('');
-        }}
-        onDecline={() => {
-          // L'utilisateur refuse le mode hardcore, victoire normale confirmée
-          setShowHardcorePrompt(false);
-          setVictory("normal");
-        }}
-      />
-      <Container maxW="full" bg="rgb(245,169,188)" centerContent p="10" minH="100vh" position="relative">
-        <Grid templateColumns="1fr 4fr" gap={6} w="full" mt={5} alignItems="stretch">
-          <GridItem>
-            <Sidebar
-              index={index}
-              guessList={guessList}
-              setIndex={setIndex}
-              foundSongs={foundSongs}
-              trophies={trophies}
+return (
+  <>
+    <FestiveModal isOpen={showVictory} onClose={() => setShowVictory(false)} state={gameState} />
+    <HardcorePromptModal
+      isOpen={showHardcorePrompt}
+      onConfirm={() => {
+        // Passage en mode hardcore
+        setGameState("guessing_hardcore");
+        setShowHardcorePrompt(false);
+      }}
+      onDecline={() => {
+        // L'utilisateur refuse le mode hardcore, victoire normale confirmée
+        setShowHardcorePrompt(false);
+      }}
+    />
+    <Container maxW="full" bg="rgb(245,169,188)" centerContent p="10" minH="100vh" position="relative">
+      <Grid templateColumns="1fr 4fr" gap={6} w="full" mt={5} alignItems="stretch">
+        <GridItem>
+          <Sidebar
+            index={index}
+            guessList={guessList}
+            setIndex={setIndex}
+            foundSongs={foundSongs}
+            trophies={trophies}
+          />
+        </GridItem>
+        <GridItem>
+          {/* Conteneur principal */}
+          <Box
+            position="relative"
+            bg="rgb(163,193,224)"
+            p="4"
+            borderRadius="3xl"
+            shadow="md"
+            h="100%"
+            minH="600px"
+          >
+            <Image
+              src="/paroldle/paroldle.png"
+              alt="Paroldle"
+              w={400}
+              mx="auto"
+              mb="4"
             />
-          </GridItem>
-          <GridItem>
-            {/* Conteneur principal */}
-            <Box
-              position="relative"
-              bg="rgb(163,193,224)"
-              p="4"
-              borderRadius="3xl"
-              shadow="md"
-              h="100%"
-              minH="600px"
+
+            {/* Affichage du trophée en haut à gauche */}
+            <HStack position="absolute" top="4" left="4">
+              <FaTrophy size={40} color="gold" />
+              <Text fontWeight={"bold"} color="white" fontSize="3xl">
+                {trophies}
+              </Text>
+            </HStack>
+
+            <HStack
+              position="absolute"
+              top="4"
+              right="4"
+              spacing="4"
             >
-              <Image
-                src="/paroldle/paroldle.png"
-                alt="Paroldle"
-                w={400}
-                mx="auto"
-                mb="4"
-              />
-
-              {/* Affichage du trophée en haut à gauche */}
-              <HStack position="absolute" top="4" left="4">
-                <FaTrophy size={40} color="gold" />
-                <Text fontWeight={"bold"} color="white" fontSize="3xl">
-                  {trophies}
-                </Text>
-              </HStack>
-
-              <HStack
-                position="absolute"
-                top="4"
-                right="4"
-                spacing="4"
-              >
-                <HStack>
-                  <Text fontWeight={600} color="white">Autoplay</Text>
-                  <Button onClick={() => setAutoplay(!autoplay)}>
-                    {autoplay ? "On" : "Off"}
-                  </Button>
-                </HStack>
-              </HStack>
-
-              <Heading size="lg" mb="4" color="white" textAlign="center">
-                Découvrez la chanson d'aujourd'hui !
-              </Heading>
-              <HStack mb="4">
-                <Heading size="lg">🎤</Heading>
-                <Input
-                  placeholder={lastWord}
-                  maxW={300}
-                  colorScheme="pink"
-                  value={inputWord}
-                  onChange={(e) => setInputWord(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleClickEnter();
-                  }}
-                />
-                <Button colorScheme="pink" onClick={handleClickEnter} mr={2}>
-                  GUESS
+              <HStack>
+                <Text fontWeight={600} color="white">Autoplay</Text>
+                <Button onClick={() => setAutoplay(!autoplay)} >
+                  {autoplay ? "On" : "Off"}
                 </Button>
-                {gameMode === "hardcore" && victory !== "hardcore" && (
-                  <Button colorScheme="orange" onClick={handleAbandonHardcore}>
-                    Abandon
-                  </Button>
-                )}
-                {guessList.length > 0 && (
-                  <Text>
-                    {guessFeedback.perfect_match > 0 || guessFeedback.partial_match > 0
-                      ? '🟩'.repeat(guessFeedback.perfect_match) +
-                      '🟧'.repeat(guessFeedback.partial_match)
-                      : '🟥'}
-                  </Text>
-                )}
-                {victory !== '' && gameMode === "normal" &&
-                  (showAllSong ? (
-                    <ViewOffIcon boxSize={7} onClick={handleClickShowSong} cursor="pointer" />
-                  ) : (
-                    <ViewIcon boxSize={7} onClick={handleClickShowSong} cursor="pointer" />
-                  ))
-                }
               </HStack>
-              <Box
-                bg="gray.100"
-                p="4"
-                borderRadius="md"
-                boxShadow="inset 4px 4px 8px rgba(0,0,0,0.3), inset -4px -4px 8px rgba(255,255,255,0.7)"
-              >
-                <LyricsComponent
-                  song={song}
-                  index={index}
-                  victory={victory}
-                  setVictory={setVictory}
-                  guess={guess}
-                  setGuess={setGuess}
-                  showAllSong={showAllSong}
-                  setGuessFeedback={setGuessFeedback}
-                  isReady={isReady}
-                  setIsReady={setIsReady}
-                  youtubeVideoId={youtubeVideoId}
-                  autoplay={autoplay}
-                  gameMode={gameMode}
-                  setShowHardcorePrompt={setShowHardcorePrompt}
-                />
-              </Box>
+            </HStack>
+
+            <Heading size="lg" mb="4" color="white" textAlign="center">
+              Découvrez la chanson d'aujourd'hui !
+            </Heading>
+            <HStack mb="4">
+              <Heading size="lg">🎤</Heading>
+              <Input
+                placeholder={lastWord}
+                maxW={300}
+                colorScheme="pink"
+                value={inputWord}
+                onChange={(e) => setInputWord(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleClickEnter();
+                }}
+              />
+              <Button colorScheme="pink" onClick={handleClickEnter} mr={2}>
+                GUESS
+              </Button>
+              {(gameState === "guessing_normal" || gameState === "guessing_hardcore") && (
+                <Button colorScheme="orange" onClick={handleAbandon}>
+                  Abandon {gameState === "guessing_hardcore" ? "Hardcore" : ""}
+                </Button>
+              )}
+              {(gameState === "victory_normal") && (
+                <Button colorScheme="blue" onClick={() => setShowHardcorePrompt(true)}>
+                  Tenter Hardcore
+                </Button>
+              )}
+              {guessList.length > 0 && (
+                <Text>
+                  {guessFeedback.perfect_match > 0 || guessFeedback.partial_match > 0
+                    ? '🟩'.repeat(guessFeedback.perfect_match) +
+                      '🟧'.repeat(guessFeedback.partial_match)
+                    : '🟥'}
+                </Text>
+              )}
+              {(gameState === "victory_normal" || gameState.startsWith("abandonned")) &&
+                (showAllSong ? (
+                  <ViewOffIcon boxSize={7} onClick={handleClickShowSong} cursor="pointer" />
+                ) : (
+                  <ViewIcon boxSize={7} onClick={handleClickShowSong} cursor="pointer" />
+                ))
+              }
+            </HStack>
+            <Box
+              bg="gray.100"
+              p="4"
+              borderRadius="md"
+              boxShadow="inset 4px 4px 8px rgba(0,0,0,0.3), inset -4px -4px 8px rgba(255,255,255,0.7)"
+            >
+              <LyricsComponent
+                song={song}
+                index={index}
+                gameState={gameState}
+                setGameState={setGameState}
+                guess={guess}
+                setGuess={setGuess}
+                showAllSong={showAllSong}
+                setGuessFeedback={setGuessFeedback}
+                isReady={isReady}
+                setIsReady={setIsReady}
+                youtubeVideoId={youtubeVideoId}
+                autoplay={autoplay}
+                trophies={trophies}
+                setTrophies={setTrophies}
+              />
             </Box>
-          </GridItem>
-        </Grid>
-        <Box mt={4}>
-          <Button colorScheme="red" onClick={resetDB}>
-            Reset DB
-          </Button>
-        </Box>
-        <footer>
-          <Text textAlign="center" mt={4} color="white" mb={5}>
-            © 2024 Paroldle. Réalisé avec ❤️ pour Charline.
-          </Text>
-        </footer>
-      </Container>
-    </>
-  );
+          </Box>
+        </GridItem>
+      </Grid>
+      <Box mt={4}>
+        <Button colorScheme="red" onClick={resetDB}>
+          Reset DB
+        </Button>
+      </Box>
+      <footer>
+        <Text textAlign="center" mt={4} color="white" mb={5}>
+          © 2024 Paroldle. Réalisé avec ❤️ pour Charline.
+        </Text>
+      </footer>
+    </Container>
+  </>
+);
 };
 
 export default App;

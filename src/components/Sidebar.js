@@ -1,4 +1,3 @@
-// Sidebar.js
 import React, { memo, useEffect, useState, useMemo } from 'react';
 import {
   Box,
@@ -13,24 +12,29 @@ import {
   CheckboxGroup,
   Tooltip,
 } from '@chakra-ui/react';
-import { SONG_AVAILABILITY_INITIAL, SONG_AVAILABILITY_INCREMENT, SONG_AVAILABILITY_THRESHOLD } from '../constants';
+import {
+  SONG_AVAILABILITY_INITIAL,
+  SONG_AVAILABILITY_INCREMENT,
+  SONG_AVAILABILITY_THRESHOLD,
+  SONGS_REQUIRED,
+} from '../constants';
 
 const Sidebar = ({ index, guessList, setIndex, foundSongs, trophies }) => {
   const [allSongs, setAllSongs] = useState([]);
 
   useEffect(() => {
     fetch('/paroldle/songs_lyrics.json')
-      .then(response => response.json())
-      .then(data => {
+      .then((response) => response.json())
+      .then((data) => {
         const songsWithIndex = data.map((song, idx) => ({ ...song, index: idx }));
         setAllSongs(songsWithIndex);
       })
-      .catch(err => console.error("Erreur lors du chargement des chansons:", err));
+      .catch((err) => console.error("Erreur lors du chargement des chansons:", err));
   }, []);
 
   const availableLanguages = useMemo(() => {
     const langs = new Set();
-    allSongs.forEach(song => {
+    allSongs.forEach((song) => {
       if (song.lang) langs.add(song.lang);
     });
     return Array.from(langs);
@@ -38,7 +42,7 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs, trophies }) => {
 
   const availableDecades = useMemo(() => {
     const decadesSet = new Set();
-    allSongs.forEach(song => {
+    allSongs.forEach((song) => {
       if (song.year) {
         const decade = Math.floor(song.year / 10) * 10;
         decadesSet.add(decade);
@@ -49,7 +53,7 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs, trophies }) => {
 
   const availableStyles = useMemo(() => {
     const stylesSet = new Set();
-    allSongs.forEach(song => {
+    allSongs.forEach((song) => {
       if (song.style) stylesSet.add(song.style);
     });
     return Array.from(stylesSet);
@@ -60,15 +64,13 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs, trophies }) => {
   const [selectedStyles, setSelectedStyles] = useState([]);
   const [filterAvailable, setFilterAvailable] = useState(false);
 
-  // Calcul de la disponibilité des chansons par style
+  // Calcul de la disponibilité des chansons par style avec une logique de palier.
+  // Pour chaque style, on regroupe les chansons et on détermine le "palier débloqué" en
+  // fonction des trophées et du nombre de chansons découvertes (chaque palier nécessitant SONGS_REQUIRED chansons).
   const availableSongsMap = useMemo(() => {
     const map = {};
-    const unlockPercentage = Math.min(
-      100,
-      SONG_AVAILABILITY_INITIAL + Math.floor(trophies / SONG_AVAILABILITY_THRESHOLD) * SONG_AVAILABILITY_INCREMENT
-    );
     const songsByStyle = {};
-    allSongs.forEach(song => {
+    allSongs.forEach((song) => {
       if (song.style) {
         if (!songsByStyle[song.style]) songsByStyle[song.style] = [];
         songsByStyle[song.style].push(song);
@@ -76,15 +78,32 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs, trophies }) => {
     });
     for (const style in songsByStyle) {
       const songsOfStyle = songsByStyle[style].sort((a, b) => a.index - b.index);
-      const allowedCount = Math.ceil(songsOfStyle.length * unlockPercentage / 100);
-      map[style] = { allowed: new Set(songsOfStyle.slice(0, allowedCount).map(s => s.index)), songsOfStyle, allowedCount };
+      // Nombre de chansons découvertes dans ce style
+      const discoveredCount = songsOfStyle.filter((song) =>
+        foundSongs && Object.hasOwn(foundSongs, song.index)
+      ).length;
+      // Calcul du palier débloqué actuel :
+      // On peut considérer le palier atteint comme le minimum entre le palier basé sur les trophées et celui sur le nombre de chansons découvertes.
+      const tierFromTrophies = Math.floor(trophies / SONG_AVAILABILITY_THRESHOLD);
+      const tierFromDiscovered = Math.floor(discoveredCount / SONGS_REQUIRED);
+      const unlockedTier = Math.min(tierFromTrophies, tierFromDiscovered);
+      // Le pourcentage de déblocage s'accroît de SONG_AVAILABILITY_INCREMENT par palier
+      const currentPercentage = SONG_AVAILABILITY_INITIAL + unlockedTier * SONG_AVAILABILITY_INCREMENT;
+      const allowedCount = Math.ceil(songsOfStyle.length * currentPercentage / 100);
+      map[style] = {
+        allowed: new Set(songsOfStyle.slice(0, allowedCount).map((s) => s.index)),
+        songsOfStyle,
+        allowedCount,
+        discoveredCount,
+        unlockedTier,
+      };
     }
     return map;
-  }, [allSongs, trophies]);
+  }, [allSongs, trophies, foundSongs]);
 
   // Filtre global appliquant également le filtre "disponible uniquement"
   const filteredSongs = useMemo(() => {
-    let songs = allSongs.filter(song => {
+    let songs = allSongs.filter((song) => {
       if (selectedLanguages.length > 0 && !selectedLanguages.includes(song.lang)) {
         return false;
       }
@@ -97,28 +116,52 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs, trophies }) => {
       return true;
     });
     if (filterAvailable) {
-      songs = songs.filter(song => availableSongsMap[song.style]?.allowed.has(song.index));
+      songs = songs.filter((song) => availableSongsMap[song.style]?.allowed.has(song.index));
     }
     return songs;
   }, [allSongs, selectedLanguages, selectedDecades, selectedStyles, filterAvailable, availableSongsMap]);
 
-
-  // Calcul pour obtenir le nombre de trophées requis pour débloquer une chanson verrouillée
-  const getTrophiesRequiredForSong = (song) => {
+  // Fonction pour obtenir les trophées et chansons manquantes pour débloquer LA chanson.
+  // On cherche le plus petit palier targetTier tel que le nombre de chansons autorisées
+  // (calculé avec SONG_AVAILABILITY_INITIAL + targetTier × SONG_AVAILABILITY_INCREMENT)
+  // soit supérieur au rang de la chanson dans le style.
+  const getRequirementsForSong = (song) => {
     const styleInfo = availableSongsMap[song.style];
-    if (!styleInfo) return 0;
-    const { songsOfStyle } = styleInfo;
-    const rank = songsOfStyle.findIndex(s => s.index === song.index);
-    const L = songsOfStyle.length;
-    const requiredPerc = ((rank + 1) / L) * 100;
-    const requiredK = Math.ceil((requiredPerc - SONG_AVAILABILITY_INITIAL) / SONG_AVAILABILITY_INCREMENT);
-    const requiredTrophies = requiredK * SONG_AVAILABILITY_THRESHOLD;
-    return requiredTrophies - trophies;
+    if (!styleInfo) return { missingTrophies: 0, missingSongs: 0 };
+    const { songsOfStyle, discoveredCount } = styleInfo;
+    const totalSongsInStyle = songsOfStyle.length;
+    // Détermine le rang (0-indexé) de la chanson dans le style
+    const rank = songsOfStyle.findIndex((s) => s.index === song.index);
+    // On démarre à partir du palier actuellement débloqué (tel que calculé à partir des trophées et découvertes)
+    const currentTier = Math.min(
+      Math.floor(trophies / SONG_AVAILABILITY_THRESHOLD),
+      Math.floor(discoveredCount / SONGS_REQUIRED)
+    );
+    let targetTier = currentTier;
+    // Incrémente targetTier jusqu'à ce que la chanson soit débloquée à ce palier
+    while (true) {
+      const currentPercentage = SONG_AVAILABILITY_INITIAL + targetTier * SONG_AVAILABILITY_INCREMENT;
+      const allowedCount = Math.ceil(totalSongsInStyle * currentPercentage / 100);
+      if (rank < allowedCount) break;
+      targetTier++;
+      // On peut fixer une borne supérieure pour éviter une boucle infinie
+      if (targetTier > 100) break;
+    }
+    // Pour débloquer le palier targetTier, il faut :
+    // - Trophées requis : targetTier * SONG_AVAILABILITY_THRESHOLD
+    // - Chansons découvertes requises : targetTier * SONGS_REQUIRED
+    const requiredTrophies = targetTier * SONG_AVAILABILITY_THRESHOLD;
+    const missingTrophies = Math.max(0, requiredTrophies - trophies);
+    const requiredSongs = targetTier * SONGS_REQUIRED;
+    const missingSongs = Math.max(0, requiredSongs - discoveredCount);
+    return { missingTrophies, missingSongs };
   };
 
   const progressValue =
     filteredSongs.length > 0
-      ? (filteredSongs.filter(song => foundSongs.includes(song.index)).length / filteredSongs.length) * 100
+      ? (filteredSongs.filter((song) => Object.keys(foundSongs).includes(String(song.index))).length /
+          filteredSongs.length) *
+        100
       : 0;
 
   return (
@@ -131,7 +174,6 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs, trophies }) => {
           Chanson n° {index + 1}
         </Heading>
         <Divider width="60%" borderWidth="2px" borderColor="black" mx="auto" mb={4} />
-        {/* La partie sur les trophées a été déplacée dans App.js */}
         {guessList.length > 0 && (
           <Box mb={4}>
             <Text fontSize="lg" fontWeight="bold" color="black" mb={2}>
@@ -168,7 +210,7 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs, trophies }) => {
         )}
       </Box>
 
-      {/* Nouveaux filtres */}
+      {/* Filtres */}
       <Box bg="rgb(163,193,224)" p={6} borderRadius="3xl" boxShadow="md" mt={6} color="black">
         <Heading size="lg" mb={4} textAlign="center" color="black">
           Filtres
@@ -220,7 +262,7 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs, trophies }) => {
             </CheckboxGroup>
           </Box>
           <Divider />
-          <Box alignItems={"center"} textAlign={"center"}>
+          <Box alignItems="center" textAlign="center">
             <Checkbox isChecked={filterAvailable} onChange={(e) => setFilterAvailable(e.target.checked)}>
               Chansons débloquées
             </Checkbox>
@@ -256,36 +298,50 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs, trophies }) => {
           {filteredSongs.map((song) => {
             const styleInfo = availableSongsMap[song.style];
             const available = styleInfo ? styleInfo.allowed.has(song.index) : true;
-            let bgColor, hoverColor;
-            if (song.index === index) {
-              bgColor = 'pink.300';
-              hoverColor = 'pink.400';
-            } else if (foundSongs.includes(song.index)) {
-              bgColor = 'green.300';
-              hoverColor = 'green.400';
+
+            // Vérifie si la chanson a déjà été trouvée
+            const songState = Object.hasOwn(foundSongs, song.index) ? foundSongs[song.index] : null;
+
+            let bg, bgGradient, hover;
+            if (songState === "normal") {
+              bg = 'green.400';
+              hover = 'green.500';
+            } else if (songState === "hardcore") {
+              bgGradient = "linear(to-r, red.400, orange.400)";
+              hover = 'orange.500';
+            } else if (songState === "abandonned") {
+              bg = 'purple.400';
+              hover = 'purple.500';
             } else if (available) {
-              bgColor = 'gray.500';
-              hoverColor = 'gray.700';
+              bg = 'gray.600';
+              hover = 'gray.700';
             } else {
-              bgColor = 'gray.300';
-              hoverColor = 'gray.300';
+              bg = 'gray.400';
+              hover = 'gray.400';
             }
+
+            if (song.index === index) {
+              bg = hover;
+            }
+
+            // Si la chanson n'est pas disponible, on affiche dans le tooltip
+            // le nombre de trophées et de chansons manquantes pour débloquer la chanson.
+            const { missingTrophies, missingSongs } = getRequirementsForSong(song);
             const tooltipLabel = available
               ? ''
-              : `Il vous manque ${getTrophiesRequiredForSong(song)} trophées`;
+              : `Il vous manque ${missingTrophies > 0 ? `${missingTrophies} trophées` : ''}${
+                  missingTrophies > 0 && missingSongs > 0 ? ' et ' : ''
+                }${missingSongs > 0 ? `${missingSongs} chanson${missingSongs > 1 ? 's' : ''} de la catégorie ${song.style}.` : ''}`;
+
             return (
-              <Tooltip
-                key={song.index}
-                label={tooltipLabel}
-                hasArrow
-              >
+              <Tooltip key={song.index} label={tooltipLabel} hasArrow>
                 <Tag
                   size="md"
                   variant="solid"
                   cursor={available ? "pointer" : "not-allowed"}
                   onClick={() => available && setIndex(song.index)}
-                  bg={bgColor}
-                  _hover={{ bg: hoverColor }}
+                  {...(bgGradient ? { bgGradient } : { bg })}
+                  _hover={{ bg: hover }}
                   display="flex"
                   justifyContent="center"
                   alignItems="center"

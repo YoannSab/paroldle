@@ -4,7 +4,7 @@ import { FaMedal, FaMusic, FaFire } from 'react-icons/fa'; // Ajout de l'icône 
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 
-const FestiveModal = ({ isOpen, onClose, victory }) => {
+const FestiveModal = ({ isOpen, onClose, state }) => {
   const { width, height } = useWindowSize();
 
   return (
@@ -13,7 +13,7 @@ const FestiveModal = ({ isOpen, onClose, victory }) => {
 
       <Modal isOpen={isOpen} onClose={onClose} size="sm" isCentered>
         <ModalOverlay />
-        {victory === 'hardcore' ? (
+        {state === 'victory_hardcore' ? (
           <ModalContent
             bgGradient="linear(to-r, red.400, orange.400)"
             color="white"
