@@ -1,8 +1,8 @@
 {
   "files": {
-    "main.js": "/paroldle/static/js/main.615b2d64.js",
-    "index.html": "/paroldle/index.html",
-    "main.615b2d64.js.map": "/paroldle/static/js/main.615b2d64.js.map"
+    "main.js": "/static/js/main.615b2d64.js",
+    "index.html": "/index.html",
+    "main.615b2d64.js.map": "/static/js/main.615b2d64.js.map"
   },
   "entrypoints": [
     "static/js/main.615b2d64.js"
