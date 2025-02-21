@@ -203,7 +203,7 @@ const App = () => {
                 />
               </HStack>
               <Image
-                src="/paroldle/paroldle.png"
+                src="/paroldle.png"
                 alt="Paroldle"
                 w={500}
                 mx="auto"

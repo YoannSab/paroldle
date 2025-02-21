@@ -1,4 +1,3 @@
-// Sidebar.js
 import React, { memo, useEffect, useState, useMemo } from 'react';
 import {
   Box,
@@ -13,15 +12,194 @@ import {
   CheckboxGroup,
 } from '@chakra-ui/react';
 
+// Sous-composant pour l'affichage du titre et des essais précédents
+const GuessListDisplay = memo(({ index, guessList }) => (
+  <Box bg="rgb(255,245,204)" p={6} borderRadius="3xl" textAlign="center" boxShadow="lg">
+    <Heading size="lg" mb={3} color="black">
+      🎵 Paroldle
+    </Heading>
+    <Heading size="md" mb={4} color="black">
+      Chanson n° {index + 1}
+    </Heading>
+    <Divider width="60%" borderWidth="2px" borderColor="black" mx="auto" mb={4} />
+    {guessList.length > 0 && (
+      <Box mb={4}>
+        <Text fontSize="lg" fontWeight="bold" color="black" mb={2}>
+          Essais précédents
+        </Text>
+        <Stack
+          spacing={2}
+          direction="row"
+          flexWrap="wrap"
+          justify="center"
+          maxH="200px"
+          overflowY="auto"
+          css={{
+            '&::-webkit-scrollbar': { width: '6px' },
+            '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '3px' },
+            '&::-webkit-scrollbar-thumb': { background: '#888', borderRadius: '3px' },
+            '&::-webkit-scrollbar-thumb:hover': { background: '#555' },
+          }}
+        >
+          {guessList.map((word, i) => (
+            <Tag
+              key={i}
+              size="md"
+              variant="solid"
+              bg="rgb(255,245,204)"
+              color="black"
+              border="1px solid black"
+            >
+              {guessList.length - i}. {word}
+            </Tag>
+          ))}
+        </Stack>
+      </Box>
+    )}
+  </Box>
+));
+
+// Sous-composant pour les filtres
+const Filters = memo(({
+  availableLanguages,
+  availableDecades,
+  availableStyles,
+  selectedLanguages,
+  setSelectedLanguages,
+  selectedDecades,
+  setSelectedDecades,
+  selectedStyles,
+  setSelectedStyles,
+}) => (
+  <Box bg="rgb(163,193,224)" p={6} borderRadius="3xl" boxShadow="md" mt={6} color="black">
+    <Heading size="lg" mb={4} textAlign="center" color="black">
+      Filtres
+    </Heading>
+    <Stack spacing={4}>
+      {/* Filtre par langue */}
+      <Box>
+        <Text fontWeight="bold" mb={2}>
+          Langue
+        </Text>
+        <CheckboxGroup value={selectedLanguages} onChange={(vals) => setSelectedLanguages(vals)}>
+          <Stack direction="row" wrap="wrap">
+            {availableLanguages.map((lang) => (
+              <Checkbox key={lang} value={lang}>
+                {lang === 'french' ? 'Français' : 'Anglais'}
+              </Checkbox>
+            ))}
+          </Stack>
+        </CheckboxGroup>
+      </Box>
+
+      {/* Filtre par décennies */}
+      <Box>
+        <Text fontWeight="bold" mb={2}>
+          Décennies
+        </Text>
+        <CheckboxGroup
+          value={selectedDecades.map(String)}
+          onChange={(vals) => setSelectedDecades(vals.map(Number))}
+        >
+          <Stack direction="row" wrap="wrap">
+            {availableDecades.map((decade) => (
+              <Checkbox key={decade} value={String(decade)}>
+                {decade}s
+              </Checkbox>
+            ))}
+          </Stack>
+        </CheckboxGroup>
+      </Box>
+
+      {/* Filtre par style */}
+      <Box>
+        <Text fontWeight="bold" mb={2}>
+          Style
+        </Text>
+        <CheckboxGroup value={selectedStyles} onChange={(vals) => setSelectedStyles(vals)}>
+          <Stack direction="row" wrap="wrap">
+            {availableStyles.map((style) => (
+              <Checkbox key={style} value={style}>
+                {style}
+              </Checkbox>
+            ))}
+          </Stack>
+        </CheckboxGroup>
+      </Box>
+    </Stack>
+  </Box>
+));
+
+// Sous-composant pour l'affichage des chansons et la barre de progression
+const SongDisplay = memo(({ filteredSongs, index, setIndex, foundSongs, progressValue }) => (
+  <Box bg="rgb(240,240,240)" p={6} borderRadius="3xl" boxShadow="md" mt={6} color="black">
+    <Heading size="lg" mb={4} textAlign="center">
+      Chansons
+    </Heading>
+    <Progress
+      value={progressValue}
+      size="sm"
+      borderRadius="md"
+      bg="gray.200"
+      colorScheme="purple"
+      mb={4}
+    />
+    <Grid
+      templateColumns="repeat(auto-fill, minmax(40px, 1fr))"
+      gap={2}
+      maxH="600px"
+      overflowY="auto"
+      pr="2"
+      css={{
+        '&::-webkit-scrollbar': { width: '6px' },
+        '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '3px' },
+        '&::-webkit-scrollbar-thumb': { background: '#888', borderRadius: '3px' },
+        '&::-webkit-scrollbar-thumb:hover': { background: '#555' },
+      }}
+    >
+      {filteredSongs.map((song) => (
+        <Tag
+          key={song.index}
+          size="md"
+          variant="solid"
+          cursor="pointer"
+          onClick={() => setIndex(song.index)}
+          bg={
+            song.index === index
+              ? 'pink.300'
+              : foundSongs.includes(song.index)
+              ? 'green.300'
+              : 'gray.300'
+          }
+          _hover={{
+            bg:
+              song.index === index
+                ? 'pink.400'
+                : foundSongs.includes(song.index)
+                ? 'green.400'
+                : 'gray.400',
+          }}
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          textAlign="center"
+        >
+          {song.index + 1}
+        </Tag>
+      ))}
+    </Grid>
+  </Box>
+));
+
 const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
-  // État pour récupérer toutes les chansons depuis le JSON
+  // Chargement des chansons depuis le JSON
   const [allSongs, setAllSongs] = useState([]);
 
   useEffect(() => {
-    fetch('/paroldle/songs_lyrics.json')
+    fetch('/songs_lyrics.json')
       .then(response => response.json())
       .then(data => {
-        // On ajoute un attribut "index" à chaque chanson pour pouvoir la référencer
+        // Ajout de l'attribut "index" pour chaque chanson
         const songsWithIndex = data.map((song, idx) => ({ ...song, index: idx }));
         setAllSongs(songsWithIndex);
       })
@@ -56,12 +234,12 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
     return Array.from(stylesSet);
   }, [allSongs]);
 
-  // États pour les filtres sélectionnés
+  // États pour les filtres
   const [selectedLanguages, setSelectedLanguages] = useState([]);
   const [selectedDecades, setSelectedDecades] = useState([]);
   const [selectedStyles, setSelectedStyles] = useState([]);
 
-  // Calcul de la liste des chansons filtrées en fonction des filtres sélectionnés
+  // Filtrage des chansons en fonction des filtres sélectionnés
   const filteredSongs = useMemo(() => {
     return allSongs.filter(song => {
       if (selectedLanguages.length > 0 && !selectedLanguages.includes(song.lang)) {
@@ -85,168 +263,25 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
 
   return (
     <Box p={{ base: 4, md: 5 }} maxW="350px" mx="auto" mt={5}>
-      {/* En-tête avec le titre et l'historique des essais */}
-      <Box bg="rgb(255,245,204)" p={6} borderRadius="3xl" textAlign="center" boxShadow="lg">
-        <Heading size="lg" mb={3} color="black">
-          🎵 Paroldle
-        </Heading>
-        <Heading size="md" mb={4} color="black">
-          Chanson n° {index + 1}
-        </Heading>
-        <Divider width="60%" borderWidth="2px" borderColor="black" mx="auto" mb={4} />
-        {guessList.length > 0 && (
-          <Box mb={4}>
-            <Text fontSize="lg" fontWeight="bold" color="black" mb={2}>
-              Essais précédents
-            </Text>
-            <Stack
-              spacing={2}
-              direction="row"
-              flexWrap="wrap"
-              justify="center"
-              maxH="200px"
-              overflowY="auto"
-              css={{
-                '&::-webkit-scrollbar': { width: '6px' },
-                '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '3px' },
-                '&::-webkit-scrollbar-thumb': { background: '#888', borderRadius: '3px' },
-                '&::-webkit-scrollbar-thumb:hover': { background: '#555' },
-              }}
-            >
-              {guessList.map((word, i) => (
-                <Tag
-                  key={i}
-                  size="md"
-                  variant="solid"
-                  bg="rgb(255,245,204)"
-                  color="black"
-                  border="1px solid black"
-                >
-                  {guessList.length - i}. {word}
-                </Tag>
-              ))}
-            </Stack>
-          </Box>
-        )}
-      </Box>
-
-      {/* Section des filtres */}
-      <Box bg="rgb(163,193,224)" p={6} borderRadius="3xl" boxShadow="md" mt={6} color="black">
-        <Heading size="lg" mb={4} textAlign="center" color="black">
-          Filtres
-        </Heading>
-        <Stack spacing={4}>
-          {/* Filtre par langue */}
-          <Box>
-            <Text fontWeight="bold" mb={2}>
-              Langue
-            </Text>
-            <CheckboxGroup value={selectedLanguages} onChange={(vals) => setSelectedLanguages(vals)}>
-              <Stack direction="row" wrap="wrap">
-                {availableLanguages.map((lang) => (
-                  <Checkbox key={lang} value={lang}>
-                    {lang === 'french' ? 'Français' : 'Anglais'}
-                  </Checkbox>
-                ))}
-              </Stack>
-            </CheckboxGroup>
-          </Box>
-
-          {/* Filtre par décennies */}
-          <Box>
-            <Text fontWeight="bold" mb={2}>
-              Décennies
-            </Text>
-            <CheckboxGroup
-              value={selectedDecades.map(String)}
-              onChange={(vals) => setSelectedDecades(vals.map(Number))}
-            >
-              <Stack direction="row" wrap="wrap">
-                {availableDecades.map((decade) => (
-                  <Checkbox key={decade} value={String(decade)}>
-                    {decade}s
-                  </Checkbox>
-                ))}
-              </Stack>
-            </CheckboxGroup>
-          </Box>
-
-          {/* Filtre par style */}
-          <Box>
-            <Text fontWeight="bold" mb={2}>
-              Style
-            </Text>
-            <CheckboxGroup value={selectedStyles} onChange={(vals) => setSelectedStyles(vals)}>
-              <Stack direction="row" wrap="wrap">
-                {availableStyles.map((style) => (
-                  <Checkbox key={style} value={style}>
-                    {style}
-                  </Checkbox>
-                ))}
-              </Stack>
-            </CheckboxGroup>
-          </Box>
-        </Stack>
-      </Box>
-
-      {/* Liste des chansons filtrées avec barre de progression */}
-      <Box bg="rgb(240,240,240)" p={6} borderRadius="3xl" boxShadow="md" mt={6} color="black">
-        <Heading size="lg" mb={4} textAlign="center">
-          Chansons
-        </Heading>
-        <Progress
-          value={progressValue}
-          size="sm"
-          borderRadius="md"
-          bg="gray.200"
-          colorScheme="purple"
-          mb={4}
-        />
-        <Grid
-          templateColumns="repeat(auto-fill, minmax(40px, 1fr))"
-          gap={2}
-          maxH="600px"
-          overflowY="auto"
-          pr="2"  // Décale la scrollbar un peu à droite
-          css={{
-            '&::-webkit-scrollbar': { width: '6px' },
-            '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '3px' },
-            '&::-webkit-scrollbar-thumb': { background: '#888', borderRadius: '3px' },
-            '&::-webkit-scrollbar-thumb:hover': { background: '#555' },
-          }}
-        >
-          {filteredSongs.map((song) => (
-            <Tag
-              key={song.index}
-              size="md"
-              variant="solid"
-              cursor="pointer"
-              onClick={() => setIndex(song.index)}
-              bg={
-                song.index === index
-                  ? 'pink.300'
-                  : foundSongs.includes(song.index)
-                  ? 'green.300'
-                  : 'gray.300'
-              }
-              _hover={{
-                bg:
-                  song.index === index
-                    ? 'pink.400'
-                    : foundSongs.includes(song.index)
-                    ? 'green.400'
-                    : 'gray.400',
-              }}
-              display="flex"
-              justifyContent="center"
-              alignItems="center"
-              textAlign="center"
-            >
-              {song.index + 1}
-            </Tag>
-          ))}
-        </Grid>
-      </Box>
+      <GuessListDisplay index={index} guessList={guessList} />
+      <Filters
+        availableLanguages={availableLanguages}
+        availableDecades={availableDecades}
+        availableStyles={availableStyles}
+        selectedLanguages={selectedLanguages}
+        setSelectedLanguages={setSelectedLanguages}
+        selectedDecades={selectedDecades}
+        setSelectedDecades={setSelectedDecades}
+        selectedStyles={selectedStyles}
+        setSelectedStyles={setSelectedStyles}
+      />
+      <SongDisplay
+        filteredSongs={filteredSongs}
+        index={index}
+        setIndex={setIndex}
+        foundSongs={foundSongs}
+        progressValue={progressValue}
+      />
     </Box>
   );
 };

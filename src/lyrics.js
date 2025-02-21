@@ -1,11 +1,11 @@
 async function getSong(index) {
-    const response = await fetch("/paroldle/songs_lyrics.json")
+    const response = await fetch("/songs_lyrics.json")
     const data = await response.json();
     return data[index];
 }
 
 async function getSongsInfo(songsFound) {
-    const response = await fetch('/paroldle/songs_lyrics.json');
+    const response = await fetch('/songs_lyrics.json');
     const data = await response.json();
   
     const stylesCount = data.reduce((acc, song, index) => {

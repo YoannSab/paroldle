@@ -273,7 +273,7 @@ return (
             minH="600px"
           >
             <Image
-              src="/paroldle/paroldle.png"
+              src="/paroldle.png"
               alt="Paroldle"
               w={400}
               mx="auto"
