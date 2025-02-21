@@ -4,9 +4,9 @@ export const NORMAL_VICTORY_BASE_POINTS = 50; // points maximum pour une victoir
 
 export const HARDCORE_VICTORY_BONUS = 100; // bonus en cas de victoire hardcore
 
-export const SONG_AVAILABILITY_INITIAL = 20; // en pourcentage (10% des chansons par style au départ)
-export const SONG_AVAILABILITY_INCREMENT = 15; // on ajoute 10% par palier
-export const SONG_AVAILABILITY_THRESHOLD = 100; // seuil de trophées pour débloquer 10% supplémentaires
+export const SONG_AVAILABILITY_INITIAL = 5; // en pourcentage (10% des chansons par style au départ)
+export const SONG_AVAILABILITY_INCREMENT = 5; // on ajoute 10% par palier
+export const SONG_AVAILABILITY_THRESHOLD = 200; // seuil de trophées pour débloquer 10% supplémentaires
 
 export const N_CLUES = 5;
 
