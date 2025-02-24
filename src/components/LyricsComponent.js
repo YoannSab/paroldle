@@ -7,12 +7,14 @@ import {
   matchWord,
 } from "../lyricsUtils";
 
-import { N_CLUES, CLUE_COST_COUNT, CLUE_COST_TROPHIES, N_CLUE_BUY } from "../constants";
+import { N_CLUES, CLUE_COST_COUNT, CLUE_COST_TROPHIES, N_CLUE_BUY, useColors } from "../constants";
+import Loading from "./Loading";
 
 const LyricsComponent = ({
   song,
   index,
   gameState,
+  gameMode,
   setGameState,
   guess,
   setGuess,
@@ -25,6 +27,8 @@ const LyricsComponent = ({
   trophies,
   setTrophies,
 }) => {
+  const colors = useColors();
+
   const title = useMemo(() => (song ? stringToList(song.title, song.lang) : []), [song]);
   const lyrics = useMemo(() => (song ? stringToList(song.lyrics, song.lang) : []), [song]);
   const artist = useMemo(() => (song ? stringToList(song.author, song.lang) : []), [song]);
@@ -53,11 +57,11 @@ const LyricsComponent = ({
   const [clues, setClues] = useState(N_CLUES);
 
   useEffect(() => {
-    if (song) {
+    if (song && index !== null && gameMode !== "") {
       setIsReady(false);
-      const storedFound = localStorage.getItem(`paroldle_found_${index}`);
-      const storedPartial = localStorage.getItem(`paroldle_partial_${index}`);
-      const storedClues = localStorage.getItem(`paroldle_clues_${index}`);
+      const storedFound = localStorage.getItem(`paroldle_${gameMode}_found_${index}`);
+      const storedPartial = localStorage.getItem(`paroldle_${gameMode}_partial_${index}`);
+      const storedClues = localStorage.getItem(`paroldle_${gameMode}_clues_${index}`);
       setFound(storedFound ? JSON.parse(storedFound) : initialFound);
       setPartial(
         storedPartial ? JSON.parse(storedPartial) : { title: {}, lyrics: {}, artist: {} }
@@ -68,19 +72,19 @@ const LyricsComponent = ({
       setIsReady(true);
     }
     // eslint-disable-next-line
-  }, [song, initialFound]);
+  }, [song, initialFound, index]);
 
   useEffect(() => {
-    if (isReady && song) {
-      localStorage.setItem(`paroldle_found_${index}`, JSON.stringify(found));
+    if (isReady && song && index !== null && gameMode !== "") {
+      localStorage.setItem(`paroldle_${gameMode}_found_${index}`, JSON.stringify(found));
     }
     // eslint-disable-next-line
-  }, [found]);
+  }, [found, song]);
 
   useEffect(() => {
-    if (isReady && song) {
+    if (isReady && song && index !== null && gameMode !== "") {
       localStorage.setItem(
-        `paroldle_partial_${index}`,
+        `paroldle_${gameMode}_partial_${index}`,
         JSON.stringify(partial)
       );
     }
@@ -88,8 +92,8 @@ const LyricsComponent = ({
   }, [partial]);
 
   useEffect(() => {
-    if (isReady && song) {
-      localStorage.setItem(`paroldle_clues_${index}`, clues);
+    if (isReady && song && index !== null && gameMode !== "") {
+      localStorage.setItem(`paroldle_${gameMode}_clues_${index}`, clues);
     }
   }, [clues]);
 
@@ -160,9 +164,23 @@ const LyricsComponent = ({
 
   // Vérification de la condition de victoire selon le mode de jeu
   useEffect(() => {
-    if (!isReady || (!gameState.startsWith("guessing"))) return;
-
-    if (gameState === "guessing_hardcore") {
+    if (!isReady || !gameState.startsWith("guessing") || gameMode === "") return;
+    if (gameMode === "classic") {
+      if (gameState === "guessing_hardcore") {
+        if (
+          title.length > 0 &&
+          found.title.length === title.length &&
+          found.lyrics.length === lyrics.length &&
+          found.artist.length === artist.length
+        ) {
+          setGameState("victory_hardcore");
+        }
+      } else if (gameState === "guessing_normal") {
+        if (title.length > 0 && found.title.length === title.length) {
+          setGameState("victory_normal");
+        }
+      }
+    } else if (gameMode === "NOPLP") {
       if (
         title.length > 0 &&
         found.title.length === title.length &&
@@ -171,11 +189,8 @@ const LyricsComponent = ({
       ) {
         setGameState("victory_hardcore");
       }
-    } else if (gameState === "guessing_normal") {
-      if (title.length > 0 && found.title.length === title.length) {
-        setGameState("victory_normal");
-      }
     }
+
   }, [found.title, found.lyrics, found.artist, gameState, title.length, lyrics.length, artist.length, isReady]);
 
   // --- Gestion du Clue ---
@@ -245,8 +260,19 @@ const LyricsComponent = ({
   const leftColumn = lyricLines.slice(0, midLine);
   const rightColumn = lyricLines.slice(midLine);
 
+  if (index === null) {
+    return (
+      <Box minHeight={300}>
+        <Text>Choisissez une chanson pour débuter...</Text>
+      </Box>
+    )
+  }
   if (!isReady) {
-    return <Text>Chargement...</Text>;
+    return (
+      <Box minHeight={300}>
+        <Loading />
+      </Box>
+    )
   }
 
   return (
@@ -255,7 +281,7 @@ const LyricsComponent = ({
         <Flex
           align="center"
           gap={4}
-          bg="whiteAlpha.900"
+          bg={colors.guessBg}
           p={3}
           borderRadius="md"
           boxShadow="md"
@@ -293,7 +319,8 @@ const LyricsComponent = ({
           {clues === 0 && (
             <Button
               size="sm"
-              colorScheme="teal"
+              bgColor={colors.tealButtonBg}
+              _hover={{ bgColor: colors.tealButtonBgHover }}
               onClick={handleBuyClues}
               isDisabled={trophies < CLUE_COST_TROPHIES}
               variant="solid"
@@ -338,7 +365,7 @@ const LyricsComponent = ({
       </Box>
 
       {!gameState.startsWith("guessing") && youtubeVideoId && (
-        <Box mt={4} mx="auto" maxW="300px">
+        <Box mt={4} mb={4} mx="auto" maxW="300px">
           <iframe
             width="300"
             height="170"
@@ -402,6 +429,7 @@ const LyricsComponent = ({
 const LyricWords = memo(
   ({ prevWord, word, isCurrentGuess, found, partialMatch, fontSize }) => {
     const [showWordLength, setShowWordLength] = useState(false);
+    const colors = useColors();
 
     const marginLeft = useMemo(() => {
       return !prevWord || prevWord === "\n" || (!isAlphanumeric(word) && !`("&-)`.includes(word))
@@ -419,7 +447,7 @@ const LyricWords = memo(
     if (found) {
       return isCurrentGuess ? (
         <Box
-          backgroundColor="green.300"
+          backgroundColor={colors.correctGuessBg}
           display="inline-block"
           pl={1}
           pr={1}
@@ -443,7 +471,7 @@ const LyricWords = memo(
     return (
       <Box
         ml={marginLeft}
-        backgroundColor="gray.600"
+        backgroundColor={colors.maskedWordBg}
         display="inline-block"
         cursor="pointer"
         position="relative"
@@ -456,7 +484,7 @@ const LyricWords = memo(
       >
         {showWordLength && (
           <Text
-            color="white"
+            color={colors.invText}
             position="absolute"
             top="50%"
             left="50%"
@@ -470,7 +498,7 @@ const LyricWords = memo(
         )}
         {!showWordLength && partialMatch && (
           <Text
-            color="orange"
+            color={colors.partialGuess}
             position="absolute"
             top="50%"
             left="50%"

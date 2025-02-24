@@ -199,9 +199,7 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
     fetch('/songs_lyrics.json')
       .then(response => response.json())
       .then(data => {
-        // Ajout de l'attribut "index" pour chaque chanson
-        const songsWithIndex = data.map((song, idx) => ({ ...song, index: idx }));
-        setAllSongs(songsWithIndex);
+        setAllSongs(data);
       })
       .catch(err => console.error("Erreur lors du chargement des chansons:", err));
   }, []);
@@ -209,7 +207,7 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
   // Calcul des options disponibles pour chaque critère
   const availableLanguages = useMemo(() => {
     const langs = new Set();
-    allSongs.forEach(song => {
+    Object.values(allSongs).forEach(song => {
       if (song.lang) langs.add(song.lang);
     });
     return Array.from(langs);
@@ -217,7 +215,7 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
 
   const availableDecades = useMemo(() => {
     const decadesSet = new Set();
-    allSongs.forEach(song => {
+    Object.values(allSongs).forEach(song => {
       if (song.year) {
         const decade = Math.floor(song.year / 10) * 10;
         decadesSet.add(decade);
@@ -228,7 +226,7 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
 
   const availableStyles = useMemo(() => {
     const stylesSet = new Set();
-    allSongs.forEach(song => {
+    Object.values(allSongs).forEach(song => {
       if (song.style) stylesSet.add(song.style);
     });
     return Array.from(stylesSet);
@@ -241,7 +239,7 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
 
   // Filtrage des chansons en fonction des filtres sélectionnés
   const filteredSongs = useMemo(() => {
-    return allSongs.filter(song => {
+    return Object.values(allSongs).filter(song => {
       if (selectedLanguages.length > 0 && !selectedLanguages.includes(song.lang)) {
         return false;
       }
@@ -264,6 +262,13 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
   return (
     <Box p={{ base: 4, md: 5 }} maxW="350px" mx="auto" mt={5}>
       <GuessListDisplay index={index} guessList={guessList} />
+      <SongDisplay
+        filteredSongs={filteredSongs}
+        index={index}
+        setIndex={setIndex}
+        foundSongs={foundSongs}
+        progressValue={progressValue}
+      />
       <Filters
         availableLanguages={availableLanguages}
         availableDecades={availableDecades}
@@ -274,13 +279,6 @@ const Sidebar = ({ index, guessList, setIndex, foundSongs }) => {
         setSelectedDecades={setSelectedDecades}
         selectedStyles={selectedStyles}
         setSelectedStyles={setSelectedStyles}
-      />
-      <SongDisplay
-        filteredSongs={filteredSongs}
-        index={index}
-        setIndex={setIndex}
-        foundSongs={foundSongs}
-        progressValue={progressValue}
       />
     </Box>
   );
