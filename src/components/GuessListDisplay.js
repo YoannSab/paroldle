@@ -1,16 +1,16 @@
 import { memo } from 'react';
 import { Box, Stack, Tag, Text } from '@chakra-ui/react';
 import { useColors } from '../constants';
-
+import { useTranslation } from 'react-i18next';
 // ---------- GuessListDisplay ----------
 const GuessListDisplay = memo(({ guessList }) => {
   const colors = useColors();
-
+  const { t } = useTranslation();
   if (guessList.length === 0) return null;
   return (
     <Box mb={4}>
       <Text fontSize="lg" fontWeight="bold" mb={2}>
-        Essais précédents
+        {t("Previous guesses")}
       </Text>
       <Stack
         spacing={2}

@@ -18,8 +18,7 @@ const LyricsComponent = ({
   setGuessFeedback,
   isReady,
   setIsReady,
-  youtubeVideoId, // nouveau prop
-  autoplay, // nouveau prop
+  autoplay
 }) => {
   // Création des listes de tokens pour le titre, les paroles et l'artiste
   const title = useMemo(() => (song ? stringToList(song.title, song.lang) : []), [song]);
@@ -325,12 +324,12 @@ const LyricsComponent = ({
       </Box>
 
       {/* Affichage de la vidéo YouTube, placée sous le titre et l'artiste */}
-      {victory && youtubeVideoId && (
+      {victory && song.video_id && (
         <Box mt={4} mx="auto" maxW="300px">
           <iframe
             width="300"
             height="170"
-            src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=${autoplay ? 1 : 0}` }
+            src={`https://www.youtube.com/embed/${song.video_id}?autoplay=${autoplay ? 1 : 0}` }
             frameBorder="0"
             allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen

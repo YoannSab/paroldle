@@ -1,6 +1,6 @@
 // src/components/Header.js
 import React from 'react';
-import { Box, Image, IconButton, HStack, Text, useColorMode, useColorModeValue  } from '@chakra-ui/react';
+import { Box, Image, IconButton, HStack, Text, useColorModeValue  } from '@chakra-ui/react';
 import { InfoIcon } from '@chakra-ui/icons';
 import { FaTrophy } from 'react-icons/fa';
 import { Badge } from "@chakra-ui/react";
@@ -33,11 +33,11 @@ const Header = ({ onInfoClick, trophies }) => {
         <Box position="relative" mb={4}>
 
             <Image
-                src="/paroldle.png"
+                src="/paroldle_banner.png"
                 alt="Paroldle"
-                w={400}
+                w={800}
                 mx="auto"
-                mb="4"
+                mb={-5}
             />
 
             {/* Affichage du trophée en haut à gauche */}

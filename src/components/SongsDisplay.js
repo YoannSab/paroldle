@@ -1,7 +1,8 @@
 import { memo } from 'react';
 import { Box, Heading, Progress, Grid, Tag, Tooltip, Text } from '@chakra-ui/react';
 import { AddIcon, MinusIcon } from '@chakra-ui/icons';
-import { useColors } from '../constants';
+import { useColors, styleEmojis } from '../constants';
+import { useTranslation } from 'react-i18next';
 
 // ---------- SongsDisplay ----------
 const SongsDisplay = memo(({
@@ -17,6 +18,7 @@ const SongsDisplay = memo(({
     inProgressSongs
 }) => {
     const colors = useColors();
+    const { t } = useTranslation();
     // Limites d'affichage
     const MAX_VISIBLE_PER_GROUP = 10;
     const MAX_GROUP_HEIGHT = 250; // en pixels
@@ -24,7 +26,7 @@ const SongsDisplay = memo(({
     return (
         <Box bg={colors.lyricsBg} p={4} borderRadius="3xl" boxShadow="md" >
             <Heading size="lg" mb={4} textAlign="center">
-                Chansons
+                {t("Songs")} {/* Traduction du titre */}
             </Heading>
             <Progress
                 value={progressValue}
@@ -34,7 +36,7 @@ const SongsDisplay = memo(({
                 mb={4}
             />
             {Object.keys(groupedSongs).length === 0 ? (
-                <Text>Aucune chanson à afficher.</Text>
+                <Text> {t("No songs found.")} </Text>
             ) : (
                 Object.entries(groupedSongs).map(([style, songs]) => {
                     let i = 1;
@@ -54,7 +56,7 @@ const SongsDisplay = memo(({
                     return (
                         <Box key={style} mb={3}>
                             <Heading size="md" mb={2}>
-                                {style}
+                                {t(style) + ' ' + styleEmojis[style] ?? ''}
                             </Heading>
                             <Box
                                 position="relative"
@@ -71,14 +73,14 @@ const SongsDisplay = memo(({
                                                 ? (Object.hasOwn(foundSongs, song.index)
                                                     ? `${song.title} - ${song.author}`: '')
 
-                                                : `Il vous manque ${missingTrophies > 0
-                                                    ? `${missingTrophies} trophée${missingTrophies > 1 ? 's' : ''}`
+                                                : `${t("You need")} ${missingTrophies > 0
+                                                    ? `${missingTrophies} ${missingTrophies > 1 ? t("trophies") : t("trophy")}`
                                                     : ''
-                                                }${missingTrophies > 0 && missingSongs > 0 ? ' et ' : ''
+                                                }${missingTrophies > 0 && missingSongs > 0 ? ` ${t("and")}  ` : ''
                                                 }${missingSongs > 0
-                                                    ? `${missingSongs} chanson${missingSongs > 1 ? 's' : ''} ${song.style}`
+                                                    ? `${missingSongs} ${t("song")}${missingSongs > 1 ? 's' : ''} (${song.style})`
                                                     : ''
-                                                } pour débloquer.`;
+                                                } ${t("to unlock")}`;
 
                                             let bg, hover;
                                             const songState = Object.hasOwn(foundSongs, song.index)

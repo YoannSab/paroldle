@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Box, Input, List, ListItem, Heading, Text } from '@chakra-ui/react';
 import Loading from './Loading';
 import { useColors } from '../constants';
+import { useTranslation } from 'react-i18next'; // Import de useTranslation
 
 /** 
  * Composant SearchBar
@@ -9,9 +10,10 @@ import { useColors } from '../constants';
  */
 const SearchBar = ({ query, onChange }) => {
     const colors = useColors();
+    const { t } = useTranslation(); // Utilisation de useTranslation
     return (
         <Input
-            placeholder="Tapez pour rechercher..."
+            placeholder={t("Type to search...")} // Traduction du placeholder
             value={query}
             onChange={onChange}
             mb={4}
@@ -47,7 +49,6 @@ const SongsList = ({ songs, setIndex, index }) => {
     );
 };
 
-
 /**
  * Composant principal NOPLP
  * Il charge la liste complète des chansons, met à jour les résultats en fonction
@@ -56,6 +57,7 @@ const SongsList = ({ songs, setIndex, index }) => {
 const NOPLP = ({ allSongs, setIndex, foundSongs, index, inProgressSongs }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const colors = useColors();
+    const { t } = useTranslation(); // Utilisation de useTranslation
 
     // Calcul des chansons filtrées mémorisé via useMemo.
     // La recherche ne démarre qu'après 4 caractères
@@ -88,7 +90,8 @@ const NOPLP = ({ allSongs, setIndex, foundSongs, index, inProgressSongs }) => {
                             <>
                                 <Heading size="md" textAlign="center">
                                     {allSongs[index].title}
-                                </Heading><Heading size="md" textAlign="center">
+                                </Heading>
+                                <Heading size="md" textAlign="center">
                                     {allSongs[index].author} 🔥
                                 </Heading>
                             </>
@@ -99,45 +102,42 @@ const NOPLP = ({ allSongs, setIndex, foundSongs, index, inProgressSongs }) => {
                 </Box>
             )}
 
-            
+            {/* Recherche de chansons */}
             <Box p={4} borderRadius="3xl" boxShadow="md" mb={4} bg={colors.lyricsBg}>
                 <Heading size="md" mb={4} textAlign="center">
-                    Recherche de chansons 🎤
+                    🎤 {t("Song search")} {/* Traduction du titre */}
                 </Heading>
                 <SearchBar query={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                 {filteredSongs.length !== 0 && (
-                   <SongsList songs={filteredSongs} setIndex={setIndex} index={index} />
+                    <SongsList songs={filteredSongs} setIndex={setIndex} index={index} />
                 )}
-                
             </Box>
 
             {/* Liste des chansons en cours */}
-
             <Box p={4} borderRadius="3xl" boxShadow="md" mb={4} bg={colors.lyricsBg}>
                 <Heading size="md" mb={4} textAlign="center">
-                    Chansons en cours ⏳
+                    ⏳ {t("Songs in progress")} {/* Traduction du titre */}
                 </Heading>
                 {filteredInProgressSongs.length === 0 && (
                     <Text textAlign="center" color={colors.text}>
-                        Aucune chanson en cours.
+                        {t("No songs in progress.")} {/* Traduction du texte */}
                     </Text>
                 )}
                 <SongsList songs={filteredInProgressSongs} setIndex={setIndex} index={index} />
             </Box>
 
             {/* Liste des chansons complétées */}
-                <Box p={4} borderRadius="3xl" boxShadow="md" bg={colors.lyricsBg}>
-                    <Heading size="md" mb={4} textAlign="center">
-                        Chansons complétées ✔️
-                    </Heading>
-                    {filteredSongsHistory.length === 0 && (
-                        <Text textAlign="center" color={colors.text}>
-                            Aucune chanson complétée.
-                        </Text>
-                    )}
-                    <SongsList songs={filteredSongsHistory} setIndex={setIndex} index={index} />
-                </Box>
-        
+            <Box p={4} borderRadius="3xl" boxShadow="md" bg={colors.lyricsBg}>
+                <Heading size="md" mb={4} textAlign="center">
+                    ✔️ {t("Completed songs")} {/* Traduction du titre */}
+                </Heading>
+                {filteredSongsHistory.length === 0 && (
+                    <Text textAlign="center" color={colors.text}>
+                        {t("No completed songs.")} {/* Traduction du texte */}
+                    </Text>
+                )}
+                <SongsList songs={filteredSongsHistory} setIndex={setIndex} index={index} />
+            </Box>
         </>
     );
 };

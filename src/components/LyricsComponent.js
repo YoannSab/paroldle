@@ -7,8 +7,11 @@ import {
   matchWord,
 } from "../lyricsUtils";
 
+// import { cosineSimilarity } from "../compare_words";
+
 import { N_CLUES, CLUE_COST_COUNT, CLUE_COST_TROPHIES, N_CLUE_BUY, useColors } from "../constants";
 import Loading from "./Loading";
+import { useTranslation } from "react-i18next";
 
 const LyricsComponent = ({
   song,
@@ -22,12 +25,12 @@ const LyricsComponent = ({
   setGuessFeedback,
   isReady,
   setIsReady,
-  youtubeVideoId,
   autoplay,
   trophies,
   setTrophies,
 }) => {
   const colors = useColors();
+  const { t } = useTranslation();
 
   const title = useMemo(() => (song ? stringToList(song.title, song.lang) : []), [song]);
   const lyrics = useMemo(() => (song ? stringToList(song.lyrics, song.lang) : []), [song]);
@@ -55,6 +58,7 @@ const LyricsComponent = ({
   });
 
   const [clues, setClues] = useState(N_CLUES);
+  const [unlockedYear, setUnlockedYear] = useState(false);
 
   useEffect(() => {
     if (song && index !== null && gameMode !== "") {
@@ -105,6 +109,7 @@ const LyricsComponent = ({
         if (currentFoundIndices.includes(i)) continue;
         if (!guess) continue;
         const sim = matchWord(guess, wordList[i], song.lang);
+        // const sim2 = cosineSimilarity(guess, wordList[i]);
         if (sim === 1) {
           newFoundIndices.push(i);
         } else if (sim >= 0.7) {
@@ -263,7 +268,7 @@ const LyricsComponent = ({
   if (index === null) {
     return (
       <Box minHeight={300}>
-        <Text>Choisissez une chanson pour débuter...</Text>
+        <Text>{t("Choose a song to start playing")}...</Text>
       </Box>
     )
   }
@@ -298,6 +303,7 @@ const LyricsComponent = ({
               colorScheme="teal"
               aria-label="Obtenir un indice"
               isDisabled={clues <= 0}
+              
             />
             <Box
               position="absolute"
@@ -325,12 +331,11 @@ const LyricsComponent = ({
               isDisabled={trophies < CLUE_COST_TROPHIES}
               variant="solid"
             >
-              Acheter {N_CLUE_BUY} 💡 pour {CLUE_COST_TROPHIES}🏆
+              {t("Buy")}{" "} {N_CLUE_BUY} 💡{" "} {t("for")}{" "} {CLUE_COST_TROPHIES}🏆
             </Button>
           )}
         </Flex>
       </Box>
-
 
       <Box mb={2} textAlign="center">
         <Heading as="h1" fontSize="4xl">
@@ -364,12 +369,23 @@ const LyricsComponent = ({
         </Heading>
       </Box>
 
-      {!gameState.startsWith("guessing") && youtubeVideoId && (
+      {/* Affichage de l'année de sortie de la chanson accompagnée d'un bouton pour la débloquer */}
+      <Box textAlign="center" mb={4}>
+        <Heading as="h3" fontSize="xl">
+          <LyricWords
+            word={song.year.toString()}
+            found={true}
+            fontSize="inherit"
+          />
+        </Heading>
+      </Box>
+
+      {!gameState.startsWith("guessing") && song.video_id && (
         <Box mt={4} mb={4} mx="auto" maxW="300px">
           <iframe
             width="300"
             height="170"
-            src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=${autoplay ? 1 : 0}`}
+            src={`https://www.youtube.com/embed/${song.video_id}?autoplay=${autoplay ? 1 : 0}`}
             allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             title="Lecture de la musique"
@@ -479,7 +495,7 @@ const LyricWords = memo(
         textAlign="center"
         borderRadius="md"
         transform="translateY(3px)"
-        width={partialMatch ? `${partialMatch.length}ch` : `${word.length - 0.3 * word.length}ch`}
+        width={partialMatch ? `${partialMatch.length}ch` : `${word.length - 0.2 * word.length}ch`}
         height="1.5ch"
       >
         {showWordLength && (

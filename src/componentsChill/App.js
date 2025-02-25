@@ -32,8 +32,6 @@ const App = () => {
   const [guessFeedback, setGuessFeedback] = useState({});
   const [isReady, setIsReady] = useState(false);
   const [foundSongs, setFoundSongs] = useState([]);
-  // Nouvel état pour l'ID de la vidéo YouTube
-  const [youtubeVideoId, setYoutubeVideoId] = useState(null);
   const [autoplay, setAutoplay] = useState(false);
 
   /** 
@@ -84,8 +82,7 @@ const App = () => {
     getSong(index).then((data) => {
       setSong({ ...data, index });
     });
-    // Réinitialiser l'ID YouTube pour la nouvelle chanson
-    setYoutubeVideoId(null);
+
     // eslint-disable-next-line
   }, [index]);
 
@@ -115,33 +112,6 @@ const App = () => {
     // eslint-disable-next-line
   }, [victory]);
 
-  // Recherche et stockage de l'ID YouTube dans le localStorage pour la chanson en cours
-  useEffect(() => {
-    // On s'assure que la chanson est chargée et qu'elle correspond bien à l'index actuel
-    if (victory && song && song.index === index) {
-      const storedYoutubeId = localStorage.getItem(`paroldle_chill_youtube_${index}`);
-      if (storedYoutubeId) {
-        setYoutubeVideoId(storedYoutubeId);
-        return;
-      }
-      const API_KEY = "...";
-      // Construire la requête à partir du titre et, si disponible, de l'artiste
-      const query = encodeURIComponent(`${song.title} ${song.author || ''}`);
-      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=1&q=${query}&key=${API_KEY}`;
-
-      fetch(url)
-        .then(response => response.json())
-        .then(data => {
-          if (data.items && data.items.length > 0) {
-            const videoId = data.items[0].id.videoId;
-            setYoutubeVideoId(videoId);
-            localStorage.setItem(`paroldle_chill_youtube_${index}`, videoId);
-          }
-        })
-        .catch(err => console.error("Erreur lors de la recherche YouTube:", err));
-    }
-  }, [song, victory, index]);
-
   // Lorsqu'on soumet un essai, on met à jour le mot deviné et la liste des essais
   const handleClickEnter = useCallback(() => {
     if (!inputWord) return;
@@ -150,9 +120,14 @@ const App = () => {
       if (trimmed === "sudo reveal") {
         setVictory(true);
       } else {
-        setGuess(trimmed);
-        setLastWord(trimmed);
-        setGuessList((prev) => [trimmed, ...prev]);
+        const parts = trimmed.split(' ');
+        parts.forEach((part) => {
+          setTimeout(() => {
+            setGuess(part);
+            setLastWord(part);
+            setGuessList((prev) => [part, ...prev]);
+          }, 0);
+        });
       }
     }
     setInputWord('');
@@ -259,8 +234,7 @@ const App = () => {
                   setGuessFeedback={setGuessFeedback}
                   isReady={isReady}
                   setIsReady={setIsReady}
-                  youtubeVideoId={youtubeVideoId} // Prop transmise
-                  autoplay={autoplay} // Prop transmise
+                  autoplay={autoplay}
                 />
               </Box>
             </Box>

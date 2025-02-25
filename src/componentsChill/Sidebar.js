@@ -85,7 +85,7 @@ const Filters = memo(({
           <Stack direction="row" wrap="wrap">
             {availableLanguages.map((lang) => (
               <Checkbox key={lang} value={lang}>
-                {lang === 'french' ? 'Français' : 'Anglais'}
+                {lang === 'french' ? 'Français' : lang === 'italian' ? 'Italien' : lang === 'english' ? 'Anglais': undefined}
               </Checkbox>
             ))}
           </Stack>

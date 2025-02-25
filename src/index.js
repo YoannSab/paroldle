@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import App from './components/App';
 import AppChill from './componentsChill/App';
-import './compare_words';
+import './i18n';
 
 ReactDOM.render(
   <ChakraProvider>

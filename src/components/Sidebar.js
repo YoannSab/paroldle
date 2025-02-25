@@ -19,10 +19,12 @@ import SongsDisplay from './SongsDisplay';
 import Filters from './Filters';
 import NOPLP from './NOPLP';
 import Loading from './Loading';
+import { useTranslation } from 'react-i18next';
 
 // ---------- Composant principal Sidebar ----------
 const Sidebar = ({ index, guessList, setIndex, setGameMode, foundSongs, trophies, sideBarLoading, setSideBarLoading, inProgressSongs }) => {
   const colors = useColors();
+  const { t } = useTranslation();
 
   const [allSongs, setAllSongs] = useState([]);
   // Filtres locaux
@@ -64,7 +66,7 @@ const Sidebar = ({ index, guessList, setIndex, setGameMode, foundSongs, trophies
       groups[song.style].push(song);
     });
     Object.keys(groups).forEach((style) => {
-      groups[style].sort((a, b) => a.index - b.index);
+      groups[style].sort((a, b) => a.rank - b.rank);
     });
     return groups;
   }, [allSongs]);
@@ -248,7 +250,7 @@ const Sidebar = ({ index, guessList, setIndex, setGameMode, foundSongs, trophies
               borderWidth={2}
             >
               <Icon as={FaMusic} mr={2} />
-              Classique
+              {t("Classic")}
             </Tab>
 
             <Tab
@@ -263,7 +265,7 @@ const Sidebar = ({ index, guessList, setIndex, setGameMode, foundSongs, trophies
               borderWidth={2}
             >
               <Icon as={PiMicrophoneStageDuotone} mr={2} />
-              NOPLP
+              {t('NOPLP')}
             </Tab>
           </TabList>
 

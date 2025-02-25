@@ -54,3 +54,34 @@ export const useColors = () => {
         , blueButtonBg, blueButtonBgHover, pinkButtonBg, pinkButtonBgHover, tealButtonBg, tealButtonBgHover, orangeButtonBg, orangeButtonBgHover
     };
 };
+
+export const styleEmojis = {
+    "Pop": "💃",
+    "Rock": "🎸",
+    "Rap": "🎧",
+    "French Classics": "📜",
+    "French Youtube": "🎥",
+    "Disney Songs": "🏰",
+    "Metal": "🤘",
+    "Reggae": "🇯🇲",
+    "Jazz": "🎷",
+    "Electro": "🎹",
+    "Variété": "🎶",
+    "Disco": "🕺",
+    "Blues": "🎺",
+    "Funk": "🎺",
+    "Country": "🤠",
+    "Soul": "🎙️",
+    "Reggaeton": "🇵🇷",
+    "R&B": "🎤",
+    "Techno": "🎛️",
+    "Punk": "🤘",
+    "Indie": "🎸",
+    "Folk": "🎻",
+    "Gospel": "⛪",
+    "Ambiance": "🎉",
+    "Latino": "🇪🇸",
+    "K-Pop": "🇰🇷",
+    "World": "🌍",
+    "Autre": "🎵"
+};
