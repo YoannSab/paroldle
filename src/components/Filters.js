@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Box, Heading, Stack, Divider, Checkbox, CheckboxGroup, Text } from '@chakra-ui/react';
-import { useColors } from '../constants';
 import { useTranslation } from 'react-i18next';
+import useColors from '../hooks/useColors';
 
 // ---------- Filters ----------
 const Filters = memo(({

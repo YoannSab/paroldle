@@ -6,8 +6,8 @@ import {
     IconButton
 } from "@chakra-ui/react";
 import { FaMoon, FaSun, FaTrophy } from "react-icons/fa";
-import { useColors } from "../constants";
 import { useTranslation } from "react-i18next";
+import useColors from "../hooks/useColors";
 
 const ParoldleModal = ({ isOpen, onClose, autoplay, setAutoplay }) => {
     const { colorMode, toggleColorMode } = useColorMode();

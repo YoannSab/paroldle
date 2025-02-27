@@ -10,25 +10,27 @@ import {
   HStack,
   IconButton,
 } from '@chakra-ui/react';
-import { FaMicrophone, FaMicrophoneSlash } from "react-icons/fa";
+import { FaMicrophone, FaMicrophoneSlash, FaWordpress } from "react-icons/fa";
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 import { getSong } from '../lyrics';
 import LyricsComponent from './LyricsComponent';
 import FestiveModal from './FestiveModal';
 import Sidebar from './Sidebar';
 import HardcorePromptModal from './HardcorePromptModal';
-import {
-  NORMAL_VICTORY_BASE_POINTS,
-  HARDCORE_VICTORY_BONUS,
-  useColors,
-} from '../constants';
+import { NORMAL_VICTORY_BASE_POINTS, HARDCORE_VICTORY_BONUS } from '../constants';
 import InfoModal from './InfoModal';
 import Header from './Header';
 import { useTranslation } from 'react-i18next';
+import useVoiceRecognition from '../hooks/useVoiceRecognition';
+import DBManager from './DBManager';
+import useColors from '../hooks/useColors';
+import FirebaseSignalingModal from './FirebaseSignalingModal';
+import { set } from 'firebase/database';
 
 const App = () => {
   const { t, i18n } = useTranslation();
   const colors = useColors();
+
   // États principaux
   const [song, setSong] = useState(null);
   const [inputWord, setInputWord] = useState('');
@@ -42,26 +44,31 @@ const App = () => {
   const [isReady, setIsReady] = useState(false);
   const [foundSongs, setFoundSongs] = useState({});
   const [autoplay, setAutoplay] = useState(false);
-  // Game state et mode
   const [gameState, setGameState] = useState("");
-  const [gameMode, setGameMode] = useState("");
+  const [gameMode, setGameMode] = useState(""); // classic, NOPLP, fight
   const [showHardcorePrompt, setShowHardcorePrompt] = useState(false);
   const [trophies, setTrophies] = useState(0);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [sideBarLoading, setSideBarLoading] = useState(false);
   const [inProgressSongs, setInProgressSongs] = useState([]);
+  const [isCoop, setIsCoop] = useState(false);
+  const isCoopRef = useRef(isCoop);
+  const indexRef = useRef(index);
+  const guessListRef = useRef(guessList);
 
-  // États et refs pour la reconnaissance vocale
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef(null);
-  // Pour éviter de renvoyer plusieurs fois le même mot, on garde en mémoire ceux déjà traités
-  const recognizedWordsRef = useRef([]);
+  const [roomPlayers, setRoomPlayers] = useState([]);
+  const [playersGuess, setPlayersGuess] = useState({});
+  const [playerName, setPlayerName] = useState("");
+  const [playerSenders, setPlayerSenders] = useState({});
+  // États pour la connexion RTC
+  const [rtcModalOpen, setRtcModalOpen] = useState(false);
+  const [rtcSend, setRtcSend] = useState(null);
 
-
+  // Définir la langue en fonction du navigateur
   useEffect(() => {
     const userLang = navigator.language || navigator.userLanguage;
     i18n.changeLanguage(userLang.startsWith("fr") ? "fr" : "en");
-  }, []);
+  }, [i18n]);
 
   // Chargement initial depuis le localStorage
   useEffect(() => {
@@ -80,7 +87,7 @@ const App = () => {
     }
   }, []);
 
-  // Chargement/sauvegarde en fonction du gameMode
+  // Synchronisation des données en fonction du gameMode
   useEffect(() => {
     if (gameMode === "") return;
     localStorage.setItem('paroldle_gameMode', gameMode);
@@ -129,17 +136,17 @@ const App = () => {
   useEffect(() => {
     if (index == null || gameMode === "" || !song) return;
     localStorage.setItem(`paroldle_${gameMode}_guessList_${index}`, JSON.stringify(guessList));
-  }, [guessList]);
+  }, [guessList, index, gameMode, song]);
 
   useEffect(() => {
     if (gameMode === "") return;
     localStorage.setItem(`paroldle_${gameMode}_foundSongs`, JSON.stringify(foundSongs));
-  }, [foundSongs]);
+  }, [foundSongs, gameMode]);
 
   useEffect(() => {
     if (gameMode === "") return;
     localStorage.setItem(`paroldle_${gameMode}_inProgressSongs`, JSON.stringify(inProgressSongs));
-  }, [inProgressSongs]);
+  }, [inProgressSongs, gameMode]);
 
   useEffect(() => {
     localStorage.setItem('paroldle_autoplay', autoplay);
@@ -150,11 +157,11 @@ const App = () => {
   }, [trophies]);
 
   useEffect(() => {
-    if (index == null) return;
-    if (gameMode === "") return;
+    if (index == null || gameMode === "") return;
     localStorage.setItem(`paroldle_${gameMode}_gameState_${index}`, gameState);
-  }, [gameState]);
+  }, [gameState, index, gameMode]);
 
+  // Mise à jour de foundSongs selon le gameState
   useEffect(() => {
     if (!isReady || !song || index === null || gameMode === "") return;
     setFoundSongs((prev) => {
@@ -190,16 +197,15 @@ const App = () => {
       }
       return prev;
     });
-  }, [gameState]);
+  }, [gameState, isReady, song, index, gameMode]);
 
-  // Fonction pour traiter un mot reconnu par la voix (similaire à handleClickEnter)
+  // Gestion du mot reconnu par la voix
   const handleVoiceGuess = useCallback((voiceWord) => {
     const trimmed = voiceWord.trim();
     if (trimmed && trimmed !== guess) {
       if (!inProgressSongs.includes(index) && gameState.startsWith("guessing")) {
         setInProgressSongs((prev) => [...prev, index]);
       }
-      // Ajoute directement le mot à la liste s'il n'est pas déjà présent
       setGuessList((prev) => {
         if (prev.includes(trimmed)) return prev;
         return [trimmed, ...prev];
@@ -209,7 +215,13 @@ const App = () => {
     }
   }, [guess, gameState, inProgressSongs, index]);
 
-  // Fonction appelée lors de la soumission via le champ de texte
+  // Utilisation du hook de reconnaissance vocale
+  const { isListening, toggleListening } = useVoiceRecognition({
+    onResult: handleVoiceGuess,
+    lang: song ? (song.lang === "french" ? "fr-FR" : "en-US") : "fr-FR"
+  });
+
+  // Gestion de la soumission par champ texte
   const handleClickEnter = useCallback(() => {
     if (!inputWord) return;
     const trimmed = inputWord.trim();
@@ -235,24 +247,22 @@ const App = () => {
             });
             setGuess(part);
             setLastWord(part);
+            // Envoi du guess via RTC si connecté
+            if (isCoop) {
+              rtcSend(JSON.stringify({ guess: part, index }));
+            }
           }, 0);
         });
       }
     }
     setInputWord('');
-  }, [inputWord, guess, gameMode, inProgressSongs, index, gameState]);
+  }, [inputWord, guess, gameMode, inProgressSongs, index, gameState, rtcSend]);
 
   const handleClickShowSong = useCallback(() => {
     if (gameState === "victory_normal" || gameState.startsWith("abandonned")) {
       setShowAllSong((prev) => !prev);
     }
   }, [gameState]);
-
-  const resetDB = () => {
-    Object.keys(localStorage)
-      .filter((key) => key.startsWith('paroldle_'))
-      .forEach((key) => localStorage.removeItem(key));
-  };
 
   const handleAbandon = () => {
     if (gameState === "guessing_normal") {
@@ -262,104 +272,87 @@ const App = () => {
     }
   };
 
-  // --- Intégration de la reconnaissance vocale ---
-  // Initialisation unique de l'instance SpeechRecognition
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      console.log("La reconnaissance vocale n'est pas supportée par ce navigateur.");
-      return;
-    }
-    if (!recognitionRef.current) {
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.lang = song ? (song.lang === "french" ? "fr-FR" : "en-US") : "fr-FR";
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true; // pour recevoir les résultats au fur et à mesure
+  // Callbacks pour RTC multi-peer
+  const handleRtcConnected = useCallback((sendFn) => {
+    setRtcSend(() => sendFn); // Correction ici pour bien définir rtcSend
+  }, []);
 
-      recognitionRef.current.onresult = (event) => {
-        let transcript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-        // Découpe en mots puis découpe les mots contenant un apostrophe
-        const rawWords = transcript.split(/\s+/).filter(word => word.length > 0);
-        const words = rawWords.flatMap((word) => {
-          const match = word.match(/^([^']+)'(.+)$/);
-          if (match) {
-            if (recognitionRef.current.lang === "en-US") {
-              // Si c'est une négation, on ne découpe pas (ex: don't)
-              if (word.toLowerCase().includes("n't")) {
-                return [word];
-              }
-              // Sinon, l'apostrophe est attachée au début du second segment
-              return [match[1], "'" + match[2]];
-            }
-            // Pour une autre langue, on attache l'apostrophe au premier segment
-            return [match[1] + "'", match[2]];
+  const handleRtcDisconnected = useCallback(() => {
+    setRtcSend(null);
+  }, []);
+
+  const handleRtcMessage = useCallback((data) => {
+    if (isCoopRef.current && data.type === "game_data") {
+      const sender = data.sender;
+      const jsonData = JSON.parse(data.text);
+      if (jsonData.guess) {
+        if (jsonData.guess && jsonData.index === indexRef.current) {
+          setGuessList((prev) => {
+            if (prev.includes(jsonData.guess)) return prev;
+            setGuess(jsonData.guess);
+            return [jsonData.guess, ...prev];
           }
-          return [word];
-        });
-        // Ne traiter que les nouveaux mots (pour éviter les doublons dus aux mises à jour intermédiaires)
-        const newWords = words.filter(word => !recognizedWordsRef.current.includes(word));
-        if (newWords.length > 0) {
-          newWords.forEach((word) => {
-            handleVoiceGuess(word);
+          );
+          setPlayersGuess((prev) => {
+            return { ...prev, [sender]: jsonData.guess };
           });
-          recognizedWordsRef.current = words;
         }
-      };
-
-      recognitionRef.current.onerror = (event) => {
-        console.error("Erreur de reconnaissance vocale :", event.error);
-      };
+      }
+      else if (jsonData.guessList && jsonData.index === indexRef.current) {
+        jsonData.guessList.forEach((guess) => {
+          setGuessList((prev) => {
+            if (prev.includes(guess)) return prev;
+            setGuess(guess);
+            return [guess, ...prev];
+          });
+        });
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [song, handleVoiceGuess]);
+  }, []);
 
-  // Mise à jour de l'événement onend selon la valeur de isListening
+  const handleSendGuessList = useCallback((player) => {
+    console.log("Sending guess list to", player);
+    console.log(playerSenders);
+    if (playerSenders[player]) {
+      playerSenders[player](JSON.stringify({ guessList: guessListRef.current, index: indexRef.current }));
+    }
+  }, [playerSenders]);
+
   useEffect(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.onend = () => {
-        if (isListening) {
-          recognitionRef.current.start();
-        }
-      };
-    }
-  }, [isListening]);
+    if (gameMode === "") return;
+    setIsCoop((gameMode === "classic" || gameMode === "NOPLP") && rtcSend !== null);
+  }
+    , [gameMode, rtcSend]);
 
   useEffect(() => {
-    console.log("song2", song);
-    if (recognitionRef.current) {
-      recognitionRef.current.lang = song ? (song.lang === "french" ? "fr-FR" : "en-US") : "fr-FR";
-    }
-  }, [song]);
+    isCoopRef.current = isCoop;
+  }
+    , [isCoop]);
 
-  // Réinitialise la reconnaissance vocale si l'index ou le gameMode change
   useEffect(() => {
-    if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-      recognizedWordsRef.current = [];
-    }
-  }, [index, gameMode]);
+    indexRef.current = index;
+  }
+    , [index]);
 
-  // Fonction pour démarrer/arrêter la reconnaissance vocale
-  const toggleListening = useCallback(() => {
-    if (!recognitionRef.current) return;
-    if (!isListening) {
-      recognizedWordsRef.current = []; // réinitialisation des mots déjà traités
-      recognitionRef.current.start();
-      setIsListening(true);
-    } else {
-      recognitionRef.current.stop();
-      setIsListening(false);
-      recognizedWordsRef.current = [];
-    }
-  }, [isListening]);
-  // --- Fin de l'intégration vocale ---
+  useEffect(() => {
+    guessListRef.current = guessList;
+  }
+    , [guessList]);
 
   return (
     <>
+      <FirebaseSignalingModal
+        isOpen={rtcModalOpen}
+        onClose={() => setRtcModalOpen(false)}
+        onConnected={handleRtcConnected}
+        onDisconnected={handleRtcDisconnected}
+        onMessage={handleRtcMessage}
+        roomPlayers={roomPlayers}
+        setRoomPlayers={setRoomPlayers}
+        playerName={playerName}
+        setPlayerName={setPlayerName}
+        setPlayerSenders={setPlayerSenders}
+      />
       <FestiveModal isOpen={showVictory} onClose={() => setShowVictory(false)} state={gameState} />
       <HardcorePromptModal
         isOpen={showHardcorePrompt}
@@ -377,7 +370,6 @@ const App = () => {
         autoplay={autoplay}
         setAutoplay={setAutoplay}
       />
-
       <Container maxW="full" bg={colors.background} centerContent p="10" minH="100vh">
         <Grid templateColumns="1fr 4fr" gap={6} w="full" mt={5} alignItems="stretch">
           <GridItem>
@@ -391,18 +383,16 @@ const App = () => {
               sideBarLoading={sideBarLoading}
               setSideBarLoading={setSideBarLoading}
               inProgressSongs={inProgressSongs}
+              isCoop={isCoop}
+              roomPlayers={roomPlayers}
+              playersGuess={playersGuess}
+              setRtcModalOpen={setRtcModalOpen}
+              playerName={playerName}
+              sendGuessListCallback={handleSendGuessList}
             />
           </GridItem>
           <GridItem>
-            {/* Conteneur principal */}
-            <Box
-              bg={colors.primary}
-              p="4"
-              borderRadius="3xl"
-              shadow="md"
-              h="100%"
-              minH="600px"
-            >
+            <Box bg={colors.primary} p="4" borderRadius="3xl" shadow="md" h="100%" minH="600px">
               <Header
                 onInfoClick={() => setShowInfoModal(true)}
                 trophies={trophies}
@@ -410,24 +400,24 @@ const App = () => {
                 autoplay={autoplay}
               />
 
-              {/* Barre de recherche sticky */}
-              <Box
-                position="sticky"
-                top="0"
-                zIndex={1000}
-                bg={colors.primary}
-                p="4"
-              >
+              <Box position="sticky" top="0" zIndex={1000} bg={colors.primary} p="4">
                 <HStack spacing={4}>
-                  {/* Bouton micro cliquable */}
+                  {/* <Button colorScheme="purple" onClick={() => setRtcModalOpen(true)}>
+                    Mode Coop
+                  </Button>
+                  <Text>
+                    {isCoop ? "🟢" : "🔴"}
+                  </Text> */}
                   <IconButton
                     icon={isListening ? <FaMicrophoneSlash /> : <FaMicrophone />}
                     bgColor={colors.pinkButtonBg}
                     _hover={{ bgColor: colors.pinkButtonBgHover }}
                     onClick={toggleListening}
-                    title={isListening ? t("Click to stop singing") : t("Click to sing the song")}
-                  >
-                  </IconButton>
+                    title={(window.SpeechRecognition || window.webkitSpeechRecognition)
+                      ? isListening ? t("Click to stop singing") : t("Click to sing the song")
+                      : t("Voice recognition not supported")}
+                    disabled={!(window.SpeechRecognition || window.webkitSpeechRecognition)}
+                  />
                   <Input
                     placeholder={lastWord}
                     maxW={300}
@@ -452,8 +442,7 @@ const App = () => {
                       _hover={{ bgColor: colors.orangeButtonBgHover }}
                       onClick={handleAbandon}
                     >
-                      {t("Give up")}
-                      {gameState === "guessing_hardcore" ? " " + t("Hardcore") : ""}
+                      {t("Give up")} {gameState === "guessing_hardcore" ? " " + t("Hardcore") : ""}
                     </Button>
                   )}
                   {gameState === "victory_normal" && (
@@ -482,14 +471,7 @@ const App = () => {
                   }
                 </HStack>
               </Box>
-
-              {/* Contenu défilable */}
-              <Box
-                bg={colors.lyricsBg}
-                p="4"
-                borderRadius="md"
-                boxShadow="inset 4px 4px 8px rgba(0,0,0,0.3), inset -4px -4px 8px rgba(255,255,255,0.7)"
-              >
+              <Box bg={colors.lyricsBg} p="4" borderRadius="md" boxShadow="inset 4px 4px 8px rgba(0,0,0,0.3), inset -4px -4px 8px rgba(255,255,255,0.7)">
                 <LyricsComponent
                   song={song}
                   index={index}
@@ -511,13 +493,11 @@ const App = () => {
           </GridItem>
         </Grid>
         <Box mt={4}>
-          <Button colorScheme="red" onClick={resetDB}>
-            {t("Reset DB")}
-          </Button>
+          <DBManager />
         </Box>
         <footer>
           <Text textAlign="center" mt={4} color="white" mb={5}>
-            © 2024 Paroldle.{" "}{t("Made with ❤️ for Charline")}
+            © 2024 Paroldle. {t("Made with ❤️ for Charline")}
           </Text>
         </footer>
       </Container>

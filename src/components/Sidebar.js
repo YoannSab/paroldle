@@ -9,20 +9,40 @@ import {
   Tab,
   TabPanels,
   TabPanel,
+  HStack,
+  Button,
 } from '@chakra-ui/react';
-import { FaMusic } from 'react-icons/fa';
+import { FaMusic, FaUserPlus, FaUserCheck } from 'react-icons/fa';
 import { PiMicrophoneStageDuotone } from "react-icons/pi";
 
-import { SONG_AVAILABILITY_THRESHOLD, SONGS_REQUIRED, useColors } from '../constants';
+import { SONG_AVAILABILITY_THRESHOLD, SONGS_REQUIRED } from '../constants';
 import GuessListDisplay from './GuessListDisplay';
 import SongsDisplay from './SongsDisplay';
 import Filters from './Filters';
 import NOPLP from './NOPLP';
 import Loading from './Loading';
+import MultiplayerPanel from './MultiplayerPanel';
 import { useTranslation } from 'react-i18next';
+import useColors from '../hooks/useColors';
 
 // ---------- Composant principal Sidebar ----------
-const Sidebar = ({ index, guessList, setIndex, setGameMode, foundSongs, trophies, sideBarLoading, setSideBarLoading, inProgressSongs }) => {
+const Sidebar = ({
+  index,
+  guessList,
+  setIndex,
+  setGameMode,
+  foundSongs,
+  trophies,
+  sideBarLoading,
+  setSideBarLoading,
+  inProgressSongs,
+  isCoop,
+  roomPlayers,
+  playersGuess,
+  setRtcModalOpen,
+  playerName,
+  sendGuessListCallback,
+}) => {
   const colors = useColors();
   const { t } = useTranslation();
 
@@ -268,9 +288,25 @@ const Sidebar = ({ index, guessList, setIndex, setGameMode, foundSongs, trophies
               {t('NOPLP')}
             </Tab>
           </TabList>
+          <HStack spacing={4} justifyContent="center">
+            <Button
+              colorScheme={isCoop ? 'green' : 'purple'}
+              onClick={() => setRtcModalOpen(true)}
+              leftIcon={<Icon as={isCoop ? FaUserCheck : FaUserPlus} />}
+              size="sm"
+              variant="solid"
+            >
+              {isCoop ? 'Connecté' : 'Rejoindre une salle'}
+            </Button>
+          </HStack>
 
+          {/* Panel Multijoueur */}
+          {isCoop && (
+            <MultiplayerPanel players={roomPlayers} playersGuess={playersGuess} playerName={playerName} sendGuessListCallback={sendGuessListCallback} />
+          )}
           {/* Contenu des onglets */}
           <TabPanels>
+
             <TabPanel>
               {sideBarLoading ?
                 (

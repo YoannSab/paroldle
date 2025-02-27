@@ -34,7 +34,7 @@ const resources = {
             "Give up": "Abandon",
             "Give up Hardcore": "Abandon Hardcore",
             "Let's go Hardcore": "Tenter Hardcore",
-            "Reset DB": "Réinitialiser la base de données",
+            "Reset DB": "Réinitialiser la BD",
             "Made with ❤️ for Charline": "Réalisé avec ❤️ pour Charline",
             "Wow, champion!": "Wow, champioooon !",
             "You crushed the song in hardcore mode!": "Tu as déchiré la chanson en mode hardcore !",
@@ -83,6 +83,11 @@ const resources = {
             "Pop": "Pop",
             "Rap": "Rap",
             "Disney Songs": "Chansons Disney",
+            "Save DB": "Sauvegarder la BD",
+            "Load DB": "Charger la BD",
+            "Voice recognition not supported": "Reconnaissance vocale non supportée",
+            "Semantic": "Sémantique",
+            "Syntactic": "Syntaxique",
         },
     },
     en: {
@@ -166,6 +171,12 @@ const resources = {
             "Pop": "Pop",
             "Rap": "Rap",
             "Disney Songs": "Disney Songs",
+            "Save DB": "Save DB",
+            "Load DB": "Load DB",
+            "Voice recognition not supported": "Voice recognition not supported",
+            "Semantic": "Semantic",
+            "Syntactic": "Syntactic",
+            
         },
     },
 };

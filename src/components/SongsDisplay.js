@@ -1,8 +1,9 @@
 import { memo } from 'react';
 import { Box, Heading, Progress, Grid, Tag, Tooltip, Text } from '@chakra-ui/react';
 import { AddIcon, MinusIcon } from '@chakra-ui/icons';
-import { useColors, styleEmojis } from '../constants';
+import { styleEmojis } from '../constants';
 import { useTranslation } from 'react-i18next';
+import useColors from '../hooks/useColors';
 
 // ---------- SongsDisplay ----------
 const SongsDisplay = memo(({
@@ -25,7 +26,7 @@ const SongsDisplay = memo(({
 
     return (
         <Box bg={colors.lyricsBg} p={4} borderRadius="3xl" boxShadow="md" >
-            <Heading size="lg" mb={4} textAlign="center">
+            <Heading fontSize={"3xl"} mb={4} textAlign="center">
                 {t("Songs")} {/* Traduction du titre */}
             </Heading>
             <Progress

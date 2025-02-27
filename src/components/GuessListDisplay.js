@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Box, Stack, Tag, Text } from '@chakra-ui/react';
-import { useColors } from '../constants';
+import useColors from '../hooks/useColors';
 import { useTranslation } from 'react-i18next';
 // ---------- GuessListDisplay ----------
 const GuessListDisplay = memo(({ guessList }) => {

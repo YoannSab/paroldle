@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Box, Input, List, ListItem, Heading, Text } from '@chakra-ui/react';
 import Loading from './Loading';
-import { useColors } from '../constants';
 import { useTranslation } from 'react-i18next'; // Import de useTranslation
-
+import useColors from '../hooks/useColors'; // Import du hook useColors
 /** 
  * Composant SearchBar
  * Affiche un champ de recherche qui déclenche la mise à jour du terme recherché.

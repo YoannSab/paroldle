@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { Box, Text, IconButton, Heading, Flex, Button } from "@chakra-ui/react";
+import { Box, Text, IconButton, Heading, Flex, Button, Switch } from "@chakra-ui/react";
 import { FaLightbulb } from "react-icons/fa";
 import {
   stringToList,
@@ -7,11 +7,11 @@ import {
   matchWord,
 } from "../lyricsUtils";
 
-// import { cosineSimilarity } from "../compare_words";
 
-import { N_CLUES, CLUE_COST_COUNT, CLUE_COST_TROPHIES, N_CLUE_BUY, useColors } from "../constants";
+import { N_CLUES, CLUE_COST_COUNT, CLUE_COST_TROPHIES, N_CLUE_BUY } from "../constants";
 import Loading from "./Loading";
 import { useTranslation } from "react-i18next";
+import useColors from "../hooks/useColors";
 
 const LyricsComponent = ({
   song,
@@ -51,6 +51,8 @@ const LyricsComponent = ({
 
   const [found, setFound] = useState({ title: [], lyrics: [], artist: [] });
   const [partial, setPartial] = useState({ title: {}, lyrics: {}, artist: {} });
+  const [semanticPartial, setSemanticPartial] = useState({ title: {}, lyrics: {}, artist: {} });
+
   const [currentFound, setCurrentFound] = useState({
     title: [],
     lyrics: [],
@@ -58,7 +60,7 @@ const LyricsComponent = ({
   });
 
   const [clues, setClues] = useState(N_CLUES);
-  const [unlockedYear, setUnlockedYear] = useState(false);
+  const [showSemanticPartial, setShowSemanticPartial] = useState(false);
 
   useEffect(() => {
     if (song && index !== null && gameMode !== "") {
@@ -66,9 +68,13 @@ const LyricsComponent = ({
       const storedFound = localStorage.getItem(`paroldle_${gameMode}_found_${index}`);
       const storedPartial = localStorage.getItem(`paroldle_${gameMode}_partial_${index}`);
       const storedClues = localStorage.getItem(`paroldle_${gameMode}_clues_${index}`);
+      const storedSemanticPartial = localStorage.getItem(`paroldle_${gameMode}_semanticPartial_${index}`);
       setFound(storedFound ? JSON.parse(storedFound) : initialFound);
       setPartial(
         storedPartial ? JSON.parse(storedPartial) : { title: {}, lyrics: {}, artist: {} }
+      );
+      setSemanticPartial(
+        storedSemanticPartial ? JSON.parse(storedSemanticPartial) : { title: {}, lyrics: {}, artist: {} }
       );
       setClues(storedClues ? parseInt(storedClues, 10) : N_CLUES);
       setCurrentFound({ title: [], lyrics: [], artist: [] });
@@ -94,6 +100,8 @@ const LyricsComponent = ({
     }
     // eslint-disable-next-line
   }, [partial]);
+  
+
 
   useEffect(() => {
     if (isReady && song && index !== null && gameMode !== "") {
@@ -101,24 +109,40 @@ const LyricsComponent = ({
     }
   }, [clues]);
 
+  useEffect(() => {
+    if (isReady && song && index !== null && gameMode !== "") {
+      localStorage.setItem(`paroldle_${gameMode}_semanticPartial_${index}`, JSON.stringify(semanticPartial));
+    }
+  }, [semanticPartial]);
+
   const updateSectionFound = useCallback(
-    (wordList, currentFoundIndices, currentFoundPartial) => {
+    (wordList, currentFoundIndices, currentFoundPartial, currentSemanticPartial) => {
       const newFoundIndices = [];
       const newPartial = {};
+      const newSemanticPartial = {};
       for (let i = 0; i < wordList.length; i++) {
         if (currentFoundIndices.includes(i)) continue;
         if (!guess) continue;
-        const sim = matchWord(guess, wordList[i], song.lang);
+        const { match, syntaxicSim, semanticPartialMatch } = matchWord(guess, wordList[i], song.lang);
         // const sim2 = cosineSimilarity(guess, wordList[i]);
-        if (sim === 1) {
+        if (match) {
           newFoundIndices.push(i);
-        } else if (sim >= 0.7) {
-          if (!currentFoundPartial[i] || currentFoundPartial[i][1] < sim) {
-            newPartial[i] = [guess, sim.toFixed(2)];
+          continue;
+        }
+        if (syntaxicSim >= 0.7) {
+          if (!currentFoundPartial[i] || currentFoundPartial[i][1] < syntaxicSim) {
+            newPartial[i] = [guess, syntaxicSim.toFixed(2)];
           }
         }
+
+        if (semanticPartialMatch) {
+          if (!currentSemanticPartial[i]) {
+            newSemanticPartial[i] = guess;
+          }
+        }
+
       }
-      return { newFoundIndices, newPartial };
+      return { newFoundIndices, newPartial, newSemanticPartial };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [guess]
@@ -136,10 +160,11 @@ const LyricsComponent = ({
       newResults[section] = updateSectionFound(
         sections[section],
         found[section],
-        partial[section]
+        partial[section],
+        semanticPartial[section]
       );
       totalNewMatches += newResults[section].newFoundIndices.length;
-      totalPartialMatches += Object.keys(newResults[section].newPartial).length;
+      totalPartialMatches += Object.keys(newResults[section].newPartial).length + Object.keys(newResults[section].newSemanticPartial).length;
     });
 
     setFound((prev) => ({
@@ -152,6 +177,12 @@ const LyricsComponent = ({
       title: { ...prev.title, ...newResults.title.newPartial },
       lyrics: { ...prev.lyrics, ...newResults.lyrics.newPartial },
       artist: { ...prev.artist, ...newResults.artist.newPartial },
+    }));
+
+    setSemanticPartial((prev) => ({
+      title: { ...prev.title, ...newResults.title.newSemanticPartial },
+      lyrics: { ...prev.lyrics, ...newResults.lyrics.newSemanticPartial },
+      artist: { ...prev.artist, ...newResults.artist.newSemanticPartial },
     }));
 
     setCurrentFound({
@@ -282,6 +313,51 @@ const LyricsComponent = ({
 
   return (
     <Box position="relative" p={4} fontFamily="Montserrat, sans-serif">
+      <Box position="absolute" top={4} left={4} zIndex={10}>
+        <Flex
+          align="center"
+          gap={4}
+          bg={colors.guessBg}
+          p={3}
+          borderRadius="md"
+          boxShadow="md"
+        >
+
+          <Text fontWeight="bold" fontSize="md">
+            {t("Syntactic")}
+          </Text>
+          <Box display="flex" alignItems="center">
+            {/* Fond derrière le switch */}
+            <Box
+              w="35px" // Largeur du fond
+              h="20px" // Hauteur du fond
+              bg={showSemanticPartial ? "teal.500" : "red.500"} // Couleur activé/désactivé
+              borderRadius="full"
+              position="absolute"
+              transition="background-color 0.2s ease-in-out"
+            />
+
+            {/* Le Switch avec position relative pour qu'il soit devant */}
+            <Switch
+              isChecked={showSemanticPartial}
+              onChange={() => setShowSemanticPartial((prev) => !prev)}
+              size="md"
+              sx={{
+                "span.chakra-switch__track": {
+                  bg: "transparent", // Rendre le fond du switch transparent
+                },
+                "span.chakra-switch__thumb": {
+                  bg: "white", // Couleur du bouton
+                },
+              }}
+            />
+          </Box>
+
+          <Text fontWeight="bold" fontSize="md">
+            {t("Semantic")}
+          </Text>
+        </Flex>
+      </Box>
       <Box position="absolute" top={4} right={4} zIndex={10}>
         <Flex
           align="center"
@@ -291,6 +367,7 @@ const LyricsComponent = ({
           borderRadius="md"
           boxShadow="md"
         >
+
           <Text fontWeight="bold" fontSize="md">
             {foundLyricsAlpha} / {totalLyricsAlpha}
           </Text>
@@ -303,7 +380,6 @@ const LyricsComponent = ({
               colorScheme="teal"
               aria-label="Obtenir un indice"
               isDisabled={clues <= 0}
-              
             />
             <Box
               position="absolute"
@@ -334,10 +410,11 @@ const LyricsComponent = ({
               {t("Buy")}{" "} {N_CLUE_BUY} 💡{" "} {t("for")}{" "} {CLUE_COST_TROPHIES}🏆
             </Button>
           )}
+
         </Flex>
       </Box>
 
-      <Box mb={2} textAlign="center">
+      <Box mb={2} textAlign="center" mt={20}>
         <Heading as="h1" fontSize="4xl">
           {title.map((word, i) => (
             <LyricWords
@@ -346,7 +423,7 @@ const LyricsComponent = ({
               word={word}
               isCurrentGuess={currentFound.title.includes(i)}
               found={found.title.includes(i) || showAllSong || !gameState.startsWith("guessing")}
-              partialMatch={partial.title[i] ? partial.title[i][0] : null}
+              partialMatch={showSemanticPartial ? (semanticPartial.title[i] || null) : partial.title[i] ? partial.title[i][0] : null}
               fontSize="inherit"
             />
           ))}
@@ -362,7 +439,7 @@ const LyricsComponent = ({
               word={word}
               isCurrentGuess={currentFound.artist.includes(i)}
               found={found.artist.includes(i) || showAllSong || !gameState.startsWith("guessing")}
-              partialMatch={partial.artist[i] ? partial.artist[i][0] : null}
+              partialMatch={showSemanticPartial ? (semanticPartial.artist[i] || null) : partial.artist[i] ? partial.artist[i][0] : null}
               fontSize="inherit"
             />
           ))}
@@ -404,11 +481,7 @@ const LyricsComponent = ({
                   word={item.word}
                   isCurrentGuess={currentFound.lyrics.includes(item.index)}
                   found={found.lyrics.includes(item.index) || showAllSong}
-                  partialMatch={
-                    partial.lyrics[item.index]
-                      ? partial.lyrics[item.index][0]
-                      : null
-                  }
+                  partialMatch={showSemanticPartial ? (semanticPartial.lyrics[item.index] || null) : partial.lyrics[item.index] ? partial.lyrics[item.index][0] : null}
                 />
               ))}
               <br />
@@ -426,11 +499,7 @@ const LyricsComponent = ({
                   word={item.word}
                   isCurrentGuess={currentFound.lyrics.includes(item.index)}
                   found={found.lyrics.includes(item.index) || showAllSong}
-                  partialMatch={
-                    partial.lyrics[item.index]
-                      ? partial.lyrics[item.index][0]
-                      : null
-                  }
+                  partialMatch={showSemanticPartial ? (semanticPartial.lyrics[item.index] || null) : partial.lyrics[item.index] ? partial.lyrics[item.index][0] : null}
                 />
               ))}
               <br />
@@ -521,6 +590,7 @@ const LyricWords = memo(
             transform="translate(-50%, -52%)"
             fontSize="sm"
             fontFamily="inherit"
+            width={Math.max(partialMatch.length, word.length) + "ch"}
           >
             {partialMatch}
           </Text>
