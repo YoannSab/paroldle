@@ -25,7 +25,6 @@ import useVoiceRecognition from '../hooks/useVoiceRecognition';
 import DBManager from './DBManager';
 import useColors from '../hooks/useColors';
 import FirebaseSignalingModal from './FirebaseSignalingModal';
-import { set } from 'firebase/database';
 
 const App = () => {
   const { t, i18n } = useTranslation();
@@ -55,14 +54,14 @@ const App = () => {
   const isCoopRef = useRef(isCoop);
   const indexRef = useRef(index);
   const guessListRef = useRef(guessList);
+  const gameModeRef = useRef(gameMode);
 
   const [roomPlayers, setRoomPlayers] = useState([]);
-  const [playersGuess, setPlayersGuess] = useState({});
   const [playerName, setPlayerName] = useState("");
-  const [playerSenders, setPlayerSenders] = useState({});
+  const [otherPlayersInfo, setOtherPlayersInfo] = useState({});
   // États pour la connexion RTC
   const [rtcModalOpen, setRtcModalOpen] = useState(false);
-  const [rtcSend, setRtcSend] = useState(null);
+  const [sendToPlayers, setSendToPlayers] = useState(null);
 
   // Définir la langue en fonction du navigateur
   useEffect(() => {
@@ -90,6 +89,7 @@ const App = () => {
   // Synchronisation des données en fonction du gameMode
   useEffect(() => {
     if (gameMode === "") return;
+    setIsReady(false);
     localStorage.setItem('paroldle_gameMode', gameMode);
 
     const storedInProgressSongs = localStorage.getItem(`paroldle_${gameMode}_inProgressSongs`);
@@ -112,19 +112,20 @@ const App = () => {
       setGameState("");
       setGuessList([]);
     }
+    setIsReady(true);
     setSideBarLoading(false);
   }, [gameMode]);
 
   useEffect(() => {
     if (index == null || gameMode === "") return;
-
+    setIsReady(false);
     localStorage.setItem(`paroldle_${gameMode}_index`, index);
     const storedGuessList = localStorage.getItem(`paroldle_${gameMode}_guessList_${index}`);
     setGuessList(storedGuessList ? JSON.parse(storedGuessList) : []);
     const storedGameState = localStorage.getItem(`paroldle_${gameMode}_gameState_${index}`);
     setGameState(storedGameState || (gameMode === "NOPLP" ? "guessing_hardcore" : "guessing_normal"));
     setShowAllSong(false);
-    setIsReady(false);
+    
     setGuess('');
     setLastWord('');
     setSong(null);
@@ -197,7 +198,7 @@ const App = () => {
       }
       return prev;
     });
-  }, [gameState, isReady, song, index, gameMode]);
+  }, [gameState]);
 
   // Gestion du mot reconnu par la voix
   const handleVoiceGuess = useCallback((voiceWord) => {
@@ -247,16 +248,16 @@ const App = () => {
             });
             setGuess(part);
             setLastWord(part);
-            // Envoi du guess via RTC si connecté
+
             if (isCoop) {
-              rtcSend(JSON.stringify({ guess: part, index }));
+              sendToPlayers(JSON.stringify({ guess: part, index }));
             }
           }, 0);
         });
       }
     }
     setInputWord('');
-  }, [inputWord, guess, gameMode, inProgressSongs, index, gameState, rtcSend]);
+  }, [inputWord, guess, gameMode, inProgressSongs, index, gameState, sendToPlayers]);
 
   const handleClickShowSong = useCallback(() => {
     if (gameState === "victory_normal" || gameState.startsWith("abandonned")) {
@@ -274,11 +275,12 @@ const App = () => {
 
   // Callbacks pour RTC multi-peer
   const handleRtcConnected = useCallback((sendFn) => {
-    setRtcSend(() => sendFn); // Correction ici pour bien définir rtcSend
+    setSendToPlayers(() => sendFn);
   }, []);
 
   const handleRtcDisconnected = useCallback(() => {
-    setRtcSend(null);
+    setSendToPlayers(null);
+    setOtherPlayersInfo({});
   }, []);
 
   const handleRtcMessage = useCallback((data) => {
@@ -286,15 +288,21 @@ const App = () => {
       const sender = data.sender;
       const jsonData = JSON.parse(data.text);
       if (jsonData.guess) {
-        if (jsonData.guess && jsonData.index === indexRef.current) {
+        console.log("Received guess",data);
+        console.log("Current index", indexRef.current, "Current gameMode", gameModeRef.current);
+
+        if (jsonData.index === indexRef.current && data.gameMode === gameModeRef.current) {
           setGuessList((prev) => {
             if (prev.includes(jsonData.guess)) return prev;
             setGuess(jsonData.guess);
             return [jsonData.guess, ...prev];
           }
           );
-          setPlayersGuess((prev) => {
-            return { ...prev, [sender]: jsonData.guess };
+          setOtherPlayersInfo((prev) => {
+            if (Object.hasOwn(prev, sender)) {
+              return {...prev, [sender]: {...prev[sender], guess: jsonData.guess}};
+            }
+            return prev;
           });
         }
       }
@@ -308,21 +316,20 @@ const App = () => {
         });
       }
     }
-  }, []);
+  }, [otherPlayersInfo]);
 
   const handleSendGuessList = useCallback((player) => {
     console.log("Sending guess list to", player);
-    console.log(playerSenders);
-    if (playerSenders[player]) {
-      playerSenders[player](JSON.stringify({ guessList: guessListRef.current, index: indexRef.current }));
+    if (otherPlayersInfo[player].sendFunc) {
+      otherPlayersInfo[player].sendFunc(JSON.stringify({ guessList: guessListRef.current, index: indexRef.current }));
     }
-  }, [playerSenders]);
+  }, [otherPlayersInfo]);
 
   useEffect(() => {
     if (gameMode === "") return;
-    setIsCoop((gameMode === "classic" || gameMode === "NOPLP") && rtcSend !== null);
+    setIsCoop((gameMode === "classic" || gameMode === "NOPLP") && sendToPlayers !== null);
   }
-    , [gameMode, rtcSend]);
+    , [gameMode, sendToPlayers]);
 
   useEffect(() => {
     isCoopRef.current = isCoop;
@@ -339,6 +346,11 @@ const App = () => {
   }
     , [guessList]);
 
+  useEffect(() => {
+    gameModeRef.current = gameMode;
+  }
+    , [gameMode]);
+
   return (
     <>
       <FirebaseSignalingModal
@@ -351,7 +363,10 @@ const App = () => {
         setRoomPlayers={setRoomPlayers}
         playerName={playerName}
         setPlayerName={setPlayerName}
-        setPlayerSenders={setPlayerSenders}
+        setOtherPlayersInfo={setOtherPlayersInfo}
+        song={song}
+        gameMode={gameMode}
+        gameModeRef={gameModeRef}
       />
       <FestiveModal isOpen={showVictory} onClose={() => setShowVictory(false)} state={gameState} />
       <HardcorePromptModal
@@ -380,15 +395,18 @@ const App = () => {
               foundSongs={foundSongs}
               trophies={trophies}
               setGameMode={setGameMode}
+              gameMode={gameMode}
               sideBarLoading={sideBarLoading}
               setSideBarLoading={setSideBarLoading}
               inProgressSongs={inProgressSongs}
               isCoop={isCoop}
               roomPlayers={roomPlayers}
-              playersGuess={playersGuess}
+              otherPlayersInfo={otherPlayersInfo}
               setRtcModalOpen={setRtcModalOpen}
               playerName={playerName}
               sendGuessListCallback={handleSendGuessList}
+              setIsReady={setIsReady}
+
             />
           </GridItem>
           <GridItem>
@@ -402,12 +420,6 @@ const App = () => {
 
               <Box position="sticky" top="0" zIndex={1000} bg={colors.primary} p="4">
                 <HStack spacing={4}>
-                  {/* <Button colorScheme="purple" onClick={() => setRtcModalOpen(true)}>
-                    Mode Coop
-                  </Button>
-                  <Text>
-                    {isCoop ? "🟢" : "🔴"}
-                  </Text> */}
                   <IconButton
                     icon={isListening ? <FaMicrophoneSlash /> : <FaMicrophone />}
                     bgColor={colors.pinkButtonBg}

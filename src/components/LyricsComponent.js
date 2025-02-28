@@ -82,7 +82,7 @@ const LyricsComponent = ({
       setIsReady(true);
     }
     // eslint-disable-next-line
-  }, [song, initialFound, index]);
+  }, [song, index]);
 
   useEffect(() => {
     if (isReady && song && index !== null && gameMode !== "") {
@@ -100,7 +100,7 @@ const LyricsComponent = ({
     }
     // eslint-disable-next-line
   }, [partial]);
-  
+
 
 
   useEffect(() => {
@@ -226,8 +226,7 @@ const LyricsComponent = ({
         setGameState("victory_hardcore");
       }
     }
-
-  }, [found.title, found.lyrics, found.artist, gameState, title.length, lyrics.length, artist.length, isReady]);
+  }, [found.title, found.lyrics, found.artist, gameState, title.length, lyrics.length, artist.length, isReady, gameMode, onBattleVictory]);
 
   // --- Gestion du Clue ---
 
@@ -447,17 +446,18 @@ const LyricsComponent = ({
       </Box>
 
       {/* Affichage de l'année de sortie de la chanson accompagnée d'un bouton pour la débloquer */}
-      <Box textAlign="center" mb={4}>
-        <Heading as="h3" fontSize="xl">
-          <LyricWords
-            word={song.year.toString()}
-            found={true}
-            fontSize="inherit"
-          />
-        </Heading>
-      </Box>
-
-      {!gameState.startsWith("guessing") && song.video_id && (
+      {song &&
+        <Box textAlign="center" mb={4}>
+          <Heading as="h3" fontSize="xl">
+            <LyricWords
+              word={song.year.toString()}
+              found={true}
+              fontSize="inherit"
+            />
+          </Heading>
+        </Box>
+      }
+      {!gameState.startsWith("guessing") && song?.video_id && (
         <Box mt={4} mb={4} mx="auto" maxW="300px">
           <iframe
             width="300"

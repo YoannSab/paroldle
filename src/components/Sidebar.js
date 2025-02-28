@@ -31,6 +31,7 @@ const Sidebar = ({
   guessList,
   setIndex,
   setGameMode,
+  gameMode,
   foundSongs,
   trophies,
   sideBarLoading,
@@ -38,10 +39,11 @@ const Sidebar = ({
   inProgressSongs,
   isCoop,
   roomPlayers,
-  playersGuess,
+  otherPlayersInfo,
   setRtcModalOpen,
   playerName,
   sendGuessListCallback,
+  setIsReady,
 }) => {
   const colors = useColors();
   const { t } = useTranslation();
@@ -77,6 +79,27 @@ const Sidebar = ({
   useEffect(() => {
     localStorage.setItem('paroldle_activeTab', activeTab);
   }, [activeTab]);
+
+  useEffect(() => {
+    if (gameMode === 'NOPLP' && activeTab !== 1) {
+      setActiveTab(1);
+      setIsReady(false);
+      setTimeout(() => {
+        setIsReady(true);
+      }
+      , 1000
+      );
+    }
+    else if (gameMode === 'classic' && activeTab !== 0) {
+      setActiveTab(0);
+      setIsReady(false);
+      setTimeout(() => {
+        setIsReady(true);
+      }
+      , 1000
+      );
+    }
+  }, [gameMode]);
 
   // Pré-calcul : regrouper et trier les chansons par style
   const sortedSongsByStyle = useMemo(() => {
@@ -296,13 +319,22 @@ const Sidebar = ({
               size="sm"
               variant="solid"
             >
-              {isCoop ? 'Connecté' : 'Rejoindre une salle'}
+              {isCoop ? t('Connected') : t('Join a room')}
             </Button>
           </HStack>
 
           {/* Panel Multijoueur */}
           {isCoop && (
-            <MultiplayerPanel players={roomPlayers} playersGuess={playersGuess} playerName={playerName} sendGuessListCallback={sendGuessListCallback} />
+            <MultiplayerPanel 
+            players={roomPlayers} 
+            otherPlayersInfo={otherPlayersInfo}
+            playerName={playerName} 
+            sendGuessListCallback={sendGuessListCallback}
+            setGameMode={setGameMode}
+            gameMode={gameMode}
+            setIndex={setIndex}
+            index={index}
+            />
           )}
           {/* Contenu des onglets */}
           <TabPanels>

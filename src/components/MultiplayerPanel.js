@@ -9,38 +9,75 @@ import {
   Heading,
   Divider,
   IconButton,
+  Tooltip,
 } from '@chakra-ui/react';
-import { FaUpload } from 'react-icons/fa';
+import { FaMusic, FaUpload } from 'react-icons/fa';
 import useColors from '../hooks/useColors';
+import { useTranslation } from 'react-i18next';
 
-const MultiplayerPanel = ({ players, playersGuess, playerName, sendGuessListCallback }) => {
+const MultiplayerPanel = ({
+  players,
+  playerName,
+  otherPlayersInfo,
+  sendGuessListCallback,
+  gameMode,
+  setGameMode,
+  setIndex,
+  index,
+}) => {
   const colors = useColors();
+  const { t } = useTranslation();
 
-  // Filtre les joueurs pour exclure le joueur actuel
-  const filteredPlayers = useMemo(() => players.filter((player) => player !== playerName), [players, playerName]);
+  // Exclure le joueur actuel
+  const filteredPlayers = useMemo(
+    () => players.filter((player) => player !== playerName),
+    [players, playerName]
+  );
+
+  const handleOnClick = (player) => {
+    if (
+      !otherPlayersInfo[player] ||
+      !otherPlayersInfo[player].song ||
+      !otherPlayersInfo[player].gameMode
+    ) {
+      return;
+    }
+    if (
+      gameMode === otherPlayersInfo[player]?.gameMode &&
+      index === otherPlayersInfo[player]?.song.index
+    ) {
+      return;
+    }
+    setGameMode(otherPlayersInfo[player].gameMode);
+    setIndex(otherPlayersInfo[player].song.index);
+  };
 
   return (
-    <Box
-      p={6}
-      borderRadius="2xl"
-      boxShadow="lg"
-      bg={colors.lyricsBg}
-      m={4}
-    >
+    <Box p={6} borderRadius="2xl" boxShadow="lg" bg={colors.lyricsBg} m={4}>
       <Heading fontSize="2xl" fontWeight="bold" mb={4} textAlign="center">
-        🎮 Multijoueur
+        🎮 {t("Multiplayer")}
       </Heading>
-      <Divider borderWidth={2} borderColor={colors.text} width="80%" mx="auto" mb={4} />
+      <Divider
+        borderWidth={2}
+        borderColor={colors.text}
+        width="80%"
+        mx="auto"
+        mb={4}
+      />
+      
       <VStack spacing={4} align="start">
         {filteredPlayers.length === 0 ? (
           <Text fontWeight="bold" textAlign="center" w="100%">
-            Tu es seul pour l'instant...
+            {t("No other players connected")}.
           </Text>
         ) : (
           filteredPlayers.map((player, idx) => {
-            const imageNumber = (idx % 4) + 1; // Cycle entre 1 et 4 pour les images
+            const imageNumber = (idx % 4) + 1;
             const playerImage = `/men/man_${imageNumber}.png`;
-            const latestGuess = playersGuess[player] || "...";
+            const latestGuess = otherPlayersInfo[player]?.guess || "...";
+            const playerGameInfo = otherPlayersInfo[player]?.song
+              ? `${t("Mode")}: ${t(otherPlayersInfo[player].gameMode)} - ${t("Index")}: ${otherPlayersInfo[player].song.index}`
+              : t("No game data");
 
             return (
               <Box
@@ -52,24 +89,54 @@ const MultiplayerPanel = ({ players, playersGuess, playerName, sendGuessListCall
                 w="100%"
               >
                 <HStack spacing={4} align="center">
-                  <Avatar size="md" src={playerImage} name={player} />
+                  <Tooltip label={playerGameInfo} fontSize="sm" hasArrow>
+                    <Avatar size="md" src={playerImage} name={player} />
+                  </Tooltip>
                   <VStack align="start" spacing={1} flex={1}>
-                    <Text fontWeight="bold" >
-                      {player}
-                    </Text>
+                    <Text fontWeight="bold">{player}</Text>
                     <Badge colorScheme="blue" borderRadius="full" px={3} py={1}>
-                      {latestGuess}{latestGuess === "..." ? "" : " ?"}
+                      {latestGuess}
+                      {latestGuess === "..." ? "" : " ?"}
                     </Badge>
                   </VStack>
-                  <IconButton
-                    title="Envoyer les essais précédents"
-                    icon={<FaUpload />}
-                    variant="ghost"
-                    colorScheme="blue"
-                    size="sm"
-                    _hover={{ bg: 'blue.100', transform: 'scale(1.1)' }}
-                    onClick={() => sendGuessListCallback(player)}
-                  />
+                  <Tooltip label={t("Send guess list")} fontSize="sm" hasArrow>
+                    <IconButton
+                      icon={<FaUpload />}
+                      variant="ghost"
+                      colorScheme="blue"
+                      size="sm"
+                      _hover={{ transform: 'scale(1.1)' }}
+                      onClick={() => sendGuessListCallback(player)}
+                    />
+                  </Tooltip>
+                  <Tooltip
+                    label={
+                      !otherPlayersInfo[player]?.song ||
+                      (gameMode === otherPlayersInfo[player]?.gameMode &&
+                        index === otherPlayersInfo[player]?.song?.index)
+                        ? t("")
+                        : t("Go to mode: ") +
+                          otherPlayersInfo[player]?.gameMode +
+                          " -> " +
+                          t("Index: ") +
+                          otherPlayersInfo[player]?.song?.index
+                    }
+                    fontSize="sm"
+                    hasArrow
+                  >
+                    <IconButton
+                      disabled={
+                        !otherPlayersInfo[player]?.song ||
+                        (gameMode === otherPlayersInfo[player]?.gameMode &&
+                          index === otherPlayersInfo[player]?.song?.index)
+                      }
+                      icon={<FaMusic />}
+                      variant="ghost"
+                      colorScheme="pink"
+                      size="sm"
+                      onClick={() => handleOnClick(player)}
+                    />
+                  </Tooltip>
                 </HStack>
               </Box>
             );
