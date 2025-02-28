@@ -226,7 +226,7 @@ const LyricsComponent = ({
         setGameState("victory_hardcore");
       }
     }
-  }, [found.title, found.lyrics, found.artist, gameState, title.length, lyrics.length, artist.length, isReady, gameMode, onBattleVictory]);
+  }, [found.title, found.lyrics, found.artist, gameState, title.length, lyrics.length, artist.length, isReady]);
 
   // --- Gestion du Clue ---
 
