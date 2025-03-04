@@ -26,8 +26,8 @@ const useColors = () => {
     const tealButtonBgHover = useColorModeValue('teal.500', 'teal.900');
     const orangeButtonBg = useColorModeValue('orange.200', 'orange.800');
     const orangeButtonBgHover = useColorModeValue('orange.300', 'orange.900');
-    const tabsColors = [useColorModeValue("green.400", "green.800"), useColorModeValue("purple.500", "purple.800")];
-    const tabsBgColors = [useColorModeValue("rgb(159, 218, 167)", "green.600"), useColorModeValue("purple.200", "purple.600")];
+    const tabsColors = [useColorModeValue("green.400", "green.800"), useColorModeValue("purple.500", "purple.800"), useColorModeValue("blue.400", "blue.800")];
+    const tabsBgColors = [useColorModeValue("rgb(159, 218, 167)", "green.600"), useColorModeValue("purple.200", "purple.600"), useColorModeValue("blue.200", "blue.600")];
     return {
         background, tabsBgColors, tabsColors, primary, buttonBgHover, buttonBg, songBg, filtersBg, text, invText, partialGuess, guessListBg, modalBg, maskedWordBg, redModal, correctGuessBg, guessBg, lyricsBg
         , blueButtonBg, blueButtonBgHover, pinkButtonBg, pinkButtonBgHover, tealButtonBg, tealButtonBgHover, orangeButtonBg, orangeButtonBgHover

@@ -13,6 +13,8 @@ import {
   Button,
 } from '@chakra-ui/react';
 import { FaMusic, FaUserPlus, FaUserCheck } from 'react-icons/fa';
+import { GiBloodySword } from "react-icons/gi";
+
 import { PiMicrophoneStageDuotone } from "react-icons/pi";
 
 import { SONG_AVAILABILITY_THRESHOLD, SONGS_REQUIRED } from '../constants';
@@ -24,6 +26,7 @@ import Loading from './Loading';
 import MultiplayerPanel from './MultiplayerPanel';
 import { useTranslation } from 'react-i18next';
 import useColors from '../hooks/useColors';
+import OneVsOne from './OneVsOne';
 
 // ---------- Composant principal Sidebar ----------
 const Sidebar = ({
@@ -37,13 +40,22 @@ const Sidebar = ({
   sideBarLoading,
   setSideBarLoading,
   inProgressSongs,
-  isCoop,
+  isConnected,
   roomPlayers,
   otherPlayersInfo,
   setRtcModalOpen,
   playerName,
   sendGuessListCallback,
   setIsReady,
+  battleState,
+  setBattleState,
+  guess,
+  battleStartTime,
+  setBattleStartTime,
+  setFightIndex,
+  fightIndex,
+  gameState,
+  setWantsTie,
 }) => {
   const colors = useColors();
   const { t } = useTranslation();
@@ -87,7 +99,7 @@ const Sidebar = ({
       setTimeout(() => {
         setIsReady(true);
       }
-      , 1000
+        , 1000
       );
     }
     else if (gameMode === 'classic' && activeTab !== 0) {
@@ -96,7 +108,16 @@ const Sidebar = ({
       setTimeout(() => {
         setIsReady(true);
       }
-      , 1000
+        , 1000
+      );
+    }
+    else if (gameMode === 'battle' && activeTab !== 2) {
+      setActiveTab(2);
+      setIsReady(false);
+      setTimeout(() => {
+        setIsReady(true);
+      }
+        , 1000
       );
     }
   }, [gameMode]);
@@ -238,10 +259,13 @@ const Sidebar = ({
   };
 
   useEffect(() => {
-    if (activeTab === 1) {
-      setGameMode('NOPLP');
-    } else {
+    if (activeTab === 0 && gameMode !== 'classic') {
       setGameMode('classic');
+    } else if (activeTab === 1 && gameMode !== 'NOPLP') {
+      setGameMode('NOPLP');
+    }
+    else if (activeTab === 2 && gameMode !== 'battle') {
+      setGameMode('battle');
     }
   }, [activeTab, setGameMode]);
 
@@ -306,34 +330,53 @@ const Sidebar = ({
               alignItems="center"
               justifyContent="center"
               borderWidth={2}
+              mr={2}
             >
               <Icon as={PiMicrophoneStageDuotone} mr={2} />
               {t('NOPLP')}
             </Tab>
+            <Tab
+              _selected={{ bg: colors.tabsColors[2] }}
+              _hover={{ bg: colors.tabsColors[2] }}
+              color={"white"}
+              borderRadius="3xl"
+              fontWeight="bold"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              borderWidth={2}
+            >
+              <Icon as={GiBloodySword} mr={2} />
+              {t('Battle')}
+            </Tab>
+
           </TabList>
           <HStack spacing={4} justifyContent="center">
             <Button
-              colorScheme={isCoop ? 'green' : 'purple'}
+              colorScheme={isConnected ? 'green' : 'purple'}
               onClick={() => setRtcModalOpen(true)}
-              leftIcon={<Icon as={isCoop ? FaUserCheck : FaUserPlus} />}
+              leftIcon={<Icon as={isConnected ? FaUserCheck : FaUserPlus} />}
               size="sm"
               variant="solid"
             >
-              {isCoop ? t('Connected') : t('Join a room')}
+              {isConnected ? t('Connected') : t('Join a room')}
             </Button>
           </HStack>
 
           {/* Panel Multijoueur */}
-          {isCoop && (
-            <MultiplayerPanel 
-            players={roomPlayers} 
-            otherPlayersInfo={otherPlayersInfo}
-            playerName={playerName} 
-            sendGuessListCallback={sendGuessListCallback}
-            setGameMode={setGameMode}
-            gameMode={gameMode}
-            setIndex={setIndex}
-            index={index}
+          {isConnected && (
+            <MultiplayerPanel
+              players={roomPlayers}
+              otherPlayersInfo={otherPlayersInfo}
+              playerName={playerName}
+              sendGuessListCallback={sendGuessListCallback}
+              setGameMode={setGameMode}
+              gameMode={gameMode}
+              setIndex={setIndex}
+              index={index}
+              guess={guess}
+              foundSongs={foundSongs}
+              battleState={battleState}
             />
           )}
           {/* Contenu des onglets */}
@@ -385,6 +428,49 @@ const Sidebar = ({
                     index={index}
                     inProgressSongs={inProgressSongs}
                   />)
+              }
+            </TabPanel>
+
+            <TabPanel>
+              {sideBarLoading ?
+                (
+                  <Loading />
+                ) : (
+                  <><OneVsOne
+                    filteredSongs={filteredFlat}
+                    allSongs={allSongs}
+                    setIndex={setIndex}
+                    playerName={playerName}
+                    roomPlayers={roomPlayers}
+                    otherPlayersInfo={otherPlayersInfo}
+                    isConnected={isConnected}
+                    battleState={battleState}
+                    setBattleState={setBattleState}
+                    battleStartTime={battleStartTime}
+                    setBattleStartTime={setBattleStartTime}
+                    setFightIndex={setFightIndex}
+                    fightIndex={fightIndex}
+                    foundSongs={foundSongs}
+                    gameState={gameState}
+                    setWantsTie={setWantsTie} />
+
+                    <Filters
+                      availableLanguages={availableLanguages}
+                      availableDecades={availableDecades}
+                      availableStyles={availableStyles}
+                      selectedLanguages={selectedLanguages}
+                      setSelectedLanguages={setSelectedLanguages}
+                      selectedDecades={selectedDecades}
+                      setSelectedDecades={setSelectedDecades}
+                      selectedStyles={selectedStyles}
+                      setSelectedStyles={setSelectedStyles}
+                      filterAvailable={filterAvailable}
+                      setFilterAvailable={setFilterAvailable}
+                      selectedStatuses={selectedStatuses}
+                      setSelectedStatuses={setSelectedStatuses} />
+                    </>
+                )
+                
               }
             </TabPanel>
           </TabPanels>

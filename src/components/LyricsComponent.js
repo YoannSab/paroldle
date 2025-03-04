@@ -18,6 +18,7 @@ const LyricsComponent = ({
   index,
   gameState,
   gameMode,
+  gameModeRef,
   setGameState,
   guess,
   setGuess,
@@ -63,12 +64,12 @@ const LyricsComponent = ({
   const [showSemanticPartial, setShowSemanticPartial] = useState(false);
 
   useEffect(() => {
-    if (song && index !== null && gameMode !== "") {
+    if (song && index !== null && gameModeRef.current !== "") {
       setIsReady(false);
-      const storedFound = localStorage.getItem(`paroldle_${gameMode}_found_${index}`);
-      const storedPartial = localStorage.getItem(`paroldle_${gameMode}_partial_${index}`);
-      const storedClues = localStorage.getItem(`paroldle_${gameMode}_clues_${index}`);
-      const storedSemanticPartial = localStorage.getItem(`paroldle_${gameMode}_semanticPartial_${index}`);
+      const storedFound = localStorage.getItem(`paroldle_${gameModeRef.current}_found_${index}`);
+      const storedPartial = localStorage.getItem(`paroldle_${gameModeRef.current}_partial_${index}`);
+      const storedClues = localStorage.getItem(`paroldle_${gameModeRef.current}_clues_${index}`);
+      const storedSemanticPartial = localStorage.getItem(`paroldle_${gameModeRef.current}_semanticPartial_${index}`);
       setFound(storedFound ? JSON.parse(storedFound) : initialFound);
       setPartial(
         storedPartial ? JSON.parse(storedPartial) : { title: {}, lyrics: {}, artist: {} }
@@ -82,7 +83,7 @@ const LyricsComponent = ({
       setIsReady(true);
     }
     // eslint-disable-next-line
-  }, [song, index]);
+  }, [song, index]); // Voir pour ajouter gameMode
 
   useEffect(() => {
     if (isReady && song && index !== null && gameMode !== "") {
@@ -198,6 +199,7 @@ const LyricsComponent = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guess]);
 
+
   // Vérification de la condition de victoire selon le mode de jeu
   useEffect(() => {
     if (!isReady || !gameState.startsWith("guessing") || gameMode === "") return;
@@ -225,6 +227,15 @@ const LyricsComponent = ({
       ) {
         setGameState("victory_hardcore");
       }
+    } else if (gameMode === "battle") {
+      if (gameState === "guessing_battle") {
+        if (
+          title.length > 0 &&
+          found.title.length === title.length
+        ) {
+          setGameState("victory_battle");
+        }
+      }
     }
   }, [found.title, found.lyrics, found.artist, gameState, title.length, lyrics.length, artist.length, isReady]);
 
@@ -247,7 +258,7 @@ const LyricsComponent = ({
       if (
         isAlphanumeric(word) &&
         !found.lyrics.includes(i) &&
-        !title.includes(word)
+        !title.map(w => w.toLowerCase()).includes(word.toLowerCase())
       ) {
         acc.push(i);
       }
@@ -298,7 +309,11 @@ const LyricsComponent = ({
   if (index === null) {
     return (
       <Box minHeight={300}>
-        <Text>{t("Choose a song to start playing")}...</Text>
+        {gameModeRef.current === "battle" ? (
+          <Text>{t("Ready up to start the battle")}...</Text>
+        ) : (
+          <Text>{t("Choose a song to start playing")}...</Text>
+        )}
       </Box>
     )
   }

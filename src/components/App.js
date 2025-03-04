@@ -10,7 +10,7 @@ import {
   HStack,
   IconButton,
 } from '@chakra-ui/react';
-import { FaMicrophone, FaMicrophoneSlash, FaWordpress } from "react-icons/fa";
+import { FaMicrophone, FaMicrophoneSlash } from "react-icons/fa";
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 import { getSong } from '../lyrics';
 import LyricsComponent from './LyricsComponent';
@@ -25,6 +25,9 @@ import useVoiceRecognition from '../hooks/useVoiceRecognition';
 import DBManager from './DBManager';
 import useColors from '../hooks/useColors';
 import FirebaseSignalingModal from './FirebaseSignalingModal';
+import { ref, update } from 'firebase/database';
+import { database } from '../firebase';
+import TieRequestDialog from './TieRequestDialog';
 
 const App = () => {
   const { t, i18n } = useTranslation();
@@ -39,29 +42,39 @@ const App = () => {
   const [guess, setGuess] = useState('');
   const [guessList, setGuessList] = useState([]);
   const [index, setIndex] = useState(null);
+
   const [guessFeedback, setGuessFeedback] = useState({});
   const [isReady, setIsReady] = useState(false);
   const [foundSongs, setFoundSongs] = useState({});
   const [autoplay, setAutoplay] = useState(false);
   const [gameState, setGameState] = useState("");
-  const [gameMode, setGameMode] = useState(""); // classic, NOPLP, fight
+  const [gameMode, setGameMode] = useState(""); // classic, NOPLP, battle
   const [showHardcorePrompt, setShowHardcorePrompt] = useState(false);
   const [trophies, setTrophies] = useState(0);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [sideBarLoading, setSideBarLoading] = useState(false);
   const [inProgressSongs, setInProgressSongs] = useState([]);
-  const [isCoop, setIsCoop] = useState(false);
-  const isCoopRef = useRef(isCoop);
+  const [isConnected, setIsConnected] = useState(false);
+  const isConnectedRef = useRef(isConnected);
   const indexRef = useRef(index);
   const guessListRef = useRef(guessList);
   const gameModeRef = useRef(gameMode);
 
+  const [myGuess, setMyGuess] = useState("");
+
   const [roomPlayers, setRoomPlayers] = useState([]);
+  const [roomId, setRoomId] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [otherPlayersInfo, setOtherPlayersInfo] = useState({});
   // États pour la connexion RTC
   const [rtcModalOpen, setRtcModalOpen] = useState(false);
   const [sendToPlayers, setSendToPlayers] = useState(null);
+
+  const [battleState, setBattleState] = useState("waiting");
+  const [battleStartTime, setBattleStartTime] = useState(null);
+  const [fightIndex, setFightIndex] = useState(null);
+  const [wantsTie, setWantsTie] = useState(false);
+  const [tieRequestOpen, setTieRequestOpen] = useState(false);
 
   // Définir la langue en fonction du navigateur
   useEffect(() => {
@@ -69,7 +82,8 @@ const App = () => {
     i18n.changeLanguage(userLang.startsWith("fr") ? "fr" : "en");
   }, [i18n]);
 
-  // Chargement initial depuis le localStorage
+
+  // Chargement initial depuite  le localStorage
   useEffect(() => {
     const storedGameMode = localStorage.getItem('paroldle_gameMode');
     if (storedGameMode) {
@@ -89,65 +103,79 @@ const App = () => {
   // Synchronisation des données en fonction du gameMode
   useEffect(() => {
     if (gameMode === "") return;
-    setIsReady(false);
     localStorage.setItem('paroldle_gameMode', gameMode);
-
-    const storedInProgressSongs = localStorage.getItem(`paroldle_${gameMode}_inProgressSongs`);
-    setInProgressSongs(storedInProgressSongs ? JSON.parse(storedInProgressSongs) : []);
 
     const storedFoundSongs = localStorage.getItem(`paroldle_${gameMode}_foundSongs`);
     setFoundSongs(storedFoundSongs ? JSON.parse(storedFoundSongs) : {});
 
-    const storedIndex = localStorage.getItem(`paroldle_${gameMode}_index`);
-    if (storedIndex && !isNaN(parseInt(storedIndex))) {
-      const i = parseInt(storedIndex);
-      setIndex(i);
-
-      const storedGuessList = localStorage.getItem(`paroldle_${gameMode}_guessList_${storedIndex}`);
-      setGuessList(storedGuessList ? JSON.parse(storedGuessList) : []);
-      const storedGameState = localStorage.getItem(`paroldle_${gameMode}_gameState_${storedIndex}`);
-      setGameState(storedGameState || (gameMode === "NOPLP" ? "guessing_hardcore" : "guessing_normal"));
-    } else {
+    if (gameMode === "battle") {
       setIndex(null);
-      setGameState("");
-      setGuessList([]);
+      setGameState("guessing_battle");
+      
+    }
+    else {
+      setIsReady(false);
+
+      const storedInProgressSongs = localStorage.getItem(`paroldle_${gameMode}_inProgressSongs`);
+      setInProgressSongs(storedInProgressSongs ? JSON.parse(storedInProgressSongs) : []);
+
+      const storedIndex = localStorage.getItem(`paroldle_${gameMode}_index`);
+      if (storedIndex && !isNaN(parseInt(storedIndex))) {
+        const i = parseInt(storedIndex);
+        setIndex(i);
+        const storedGuessList = localStorage.getItem(`paroldle_${gameMode}_guessList_${storedIndex}`);
+        setGuessList(storedGuessList ? JSON.parse(storedGuessList) : []);
+        const storedGameState = localStorage.getItem(`paroldle_${gameMode}_gameState_${storedIndex}`);
+        setGameState(storedGameState || (gameMode === "NOPLP" ? "guessing_hardcore" : "guessing_normal"));
+      } else {
+        setIndex(null);
+        setGameState("");
+        setGuessList([]);
+      }
     }
     setIsReady(true);
     setSideBarLoading(false);
   }, [gameMode]);
 
   useEffect(() => {
-    if (index == null || gameMode === "") return;
+    if (index == null || gameModeRef.current === "") return;
     setIsReady(false);
-    localStorage.setItem(`paroldle_${gameMode}_index`, index);
-    const storedGuessList = localStorage.getItem(`paroldle_${gameMode}_guessList_${index}`);
+    localStorage.setItem(`paroldle_${gameModeRef.current}_index`, index);
+    const storedGuessList = localStorage.getItem(`paroldle_${gameModeRef.current}_guessList_${index}`);
     setGuessList(storedGuessList ? JSON.parse(storedGuessList) : []);
-    const storedGameState = localStorage.getItem(`paroldle_${gameMode}_gameState_${index}`);
-    setGameState(storedGameState || (gameMode === "NOPLP" ? "guessing_hardcore" : "guessing_normal"));
+    const storedGameState = localStorage.getItem(`paroldle_${gameModeRef.current}_gameState_${index}`);
+    setGameState(storedGameState || (gameModeRef.current === "NOPLP" ? "guessing_hardcore" : gameModeRef.current === "battle" ? "guessing_battle" : "guessing_normal"));
     setShowAllSong(false);
-    
+
     setGuess('');
     setLastWord('');
     setSong(null);
     getSong(index).then((data) => {
-      setSong(data);
+      if (!data) {
+        setIndex(null);
+        setGameState("");
+        setGuessList([]);
+      }
+      else {
+        setSong(data);
+      }
     });
   }, [index]);
 
   useEffect(() => {
-    if (index == null || gameMode === "" || !song) return;
-    localStorage.setItem(`paroldle_${gameMode}_guessList_${index}`, JSON.stringify(guessList));
-  }, [guessList, index, gameMode, song]);
+    if (indexRef.current == null || gameModeRef.current === "") return;
+    localStorage.setItem(`paroldle_${gameMode}_guessList_${indexRef.current}`, JSON.stringify(guessList));
+  }, [guessList]);
 
   useEffect(() => {
-    if (gameMode === "") return;
-    localStorage.setItem(`paroldle_${gameMode}_foundSongs`, JSON.stringify(foundSongs));
-  }, [foundSongs, gameMode]);
+    if (gameModeRef.current === "") return;
+    localStorage.setItem(`paroldle_${gameModeRef.current}_foundSongs`, JSON.stringify(foundSongs));
+  }, [foundSongs]);
 
   useEffect(() => {
-    if (gameMode === "") return;
-    localStorage.setItem(`paroldle_${gameMode}_inProgressSongs`, JSON.stringify(inProgressSongs));
-  }, [inProgressSongs, gameMode]);
+    if (gameModeRef.current === "") return;
+    localStorage.setItem(`paroldle_${gameModeRef.current}_inProgressSongs`, JSON.stringify(inProgressSongs));
+  }, [inProgressSongs]);
 
   useEffect(() => {
     localStorage.setItem('paroldle_autoplay', autoplay);
@@ -158,42 +186,59 @@ const App = () => {
   }, [trophies]);
 
   useEffect(() => {
-    if (index == null || gameMode === "") return;
-    localStorage.setItem(`paroldle_${gameMode}_gameState_${index}`, gameState);
-  }, [gameState, index, gameMode]);
+    if (indexRef.current == null || gameMode === "") return;
+    localStorage.setItem(`paroldle_${gameModeRef.current}_gameState_${indexRef.current}`, gameState);
+  }, [gameState]);
 
   // Mise à jour de foundSongs selon le gameState
   useEffect(() => {
-    if (!isReady || !song || index === null || gameMode === "") return;
+    if (!isReady || !song || index === null || gameModeRef.current === "") return;
     setFoundSongs((prev) => {
-      if (gameMode === "classic") {
-        if (gameState === "victory_normal" && !Object.hasOwn(prev, index)) {
+      if (gameModeRef.current === "classic") {
+        if (gameState === "victory_normal" && !Object.hasOwn(prev, indexRef.current)) {
           setShowVictory(true);
           setTrophies((prevTrophies) => prevTrophies + NORMAL_VICTORY_BASE_POINTS);
           setShowHardcorePrompt(true);
-          setInProgressSongs((prev) => prev.filter((i) => i !== index));
-          return { ...prev, [index]: "normal" };
-        } else if (gameState === "victory_hardcore" && prev[index] === "normal") {
+          setInProgressSongs((prev) => prev.filter((i) => i !== indexRef.current));
+          return { ...prev, [indexRef.current]: "normal" };
+        } else if (gameState === "victory_hardcore" && prev[indexRef.current] === "normal") {
           setShowVictory(true);
           setTrophies((prevTrophies) => prevTrophies + HARDCORE_VICTORY_BONUS);
-          setInProgressSongs((prev) => prev.filter((i) => i !== index));
-          return { ...prev, [index]: "hardcore" };
-        } else if (gameState === "abandonned_normal" && !Object.hasOwn(prev, index)) {
-          setInProgressSongs((prev) => prev.filter((i) => i !== index));
-          return { ...prev, [index]: "abandonned" };
-        } else if (gameState === "abandonned_hardcore" && prev[index] === "normal") {
-          setInProgressSongs((prev) => prev.filter((i) => i !== index));
+          setInProgressSongs((prev) => prev.filter((i) => i !== indexRef.current));
+          return { ...prev, [indexRef.current]: "hardcore" };
+        } else if (gameState === "abandonned_normal" && !Object.hasOwn(prev, indexRef.current)) {
+          setShowVictory(true);
+          setInProgressSongs((prev) => prev.filter((i) => i !== indexRef.current));
+          return { ...prev, [indexRef.current]: "abandonned" };
+        } else if (gameState === "abandonned_hardcore" && prev[indexRef.current] === "normal") {
+          setInProgressSongs((prev) => prev.filter((i) => i !== indexRef.current));
           return prev;
         } else if (gameState === "guessing_hardcore") {
-          setInProgressSongs((prev) => [...prev, index]);
+          setInProgressSongs((prev) => [...prev, indexRef.current]);
           return prev;
         }
-      } else if (gameMode === "NOPLP") {
-        if (gameState === "victory_hardcore" && !Object.hasOwn(prev, index)) {
+      } else if (gameModeRef.current === "NOPLP") {
+        if (gameState === "victory_hardcore" && !Object.hasOwn(prev, indexRef.current)) {
           setShowVictory(true);
           setTrophies((prevTrophies) => prevTrophies + HARDCORE_VICTORY_BONUS);
-          setInProgressSongs((prev) => prev.filter((i) => i !== index));
-          return { ...prev, [index]: "hardcore" };
+          setInProgressSongs((prev) => prev.filter((i) => i !== indexRef.current));
+          return { ...prev, [indexRef.current]: "hardcore" };
+        }
+      } else if (gameModeRef.current === "battle") {
+        if (gameState === "victory_battle" && !Object.hasOwn(prev, indexRef.current)) {
+          setShowVictory(true);
+          setTrophies((prevTrophies) => prevTrophies + NORMAL_VICTORY_BASE_POINTS);
+          return { ...prev, [indexRef.current]: {status: "victory", winner: playerName, players: [playerName, ...Object.keys(otherPlayersInfo).filter((player) => otherPlayersInfo[player].battleState === "fighting")]} };
+        }
+        else if (gameState.startsWith("defeat_battle") && !Object.hasOwn(prev, indexRef.current)) {
+          setShowVictory(true);
+          setTrophies((prevTrophies) => Math.max(0, prevTrophies - NORMAL_VICTORY_BASE_POINTS));
+          const winner = gameState.split("_")[2];
+          return { ...prev, [indexRef.current]: {status: "defeat", winner: winner, players: [playerName, ...Object.keys(otherPlayersInfo).filter((player) => otherPlayersInfo[player].battleState === "fighting")]} };
+        }
+        else if (gameState === "tie_battle" && !Object.hasOwn(prev, indexRef.current)) {
+          setShowVictory(true);
+          return { ...prev, [indexRef.current]: {status: "tie", players: [playerName, ...Object.keys(otherPlayersInfo).filter((player) => otherPlayersInfo[player].battleState === "fighting")]} };
         }
       }
       return prev;
@@ -228,16 +273,18 @@ const App = () => {
     const trimmed = inputWord.trim();
     if (trimmed && trimmed !== guess) {
       if (trimmed === "sudo reveal") {
-        if (gameMode === "NOPLP") {
+        if (gameModeRef.current === "NOPLP") {
           setGameState("victory_hardcore");
+        } else if (gameModeRef.current === "battle") {
+          setGameState("victory_battle");
         } else {
           setGameState("victory_normal");
         }
       } else if (trimmed === "sudo reveal hardcore") {
         setGameState("victory_hardcore");
       } else {
-        if (!inProgressSongs.includes(index) && gameState.startsWith("guessing")) {
-          setInProgressSongs((prev) => [...prev, index]);
+        if (!inProgressSongs.includes(indexRef.current) && gameState.startsWith("guessing")) {
+          setInProgressSongs((prev) => [...prev, indexRef.current]);
         }
         const parts = trimmed.split(' ');
         parts.forEach((part) => {
@@ -248,19 +295,20 @@ const App = () => {
             });
             setGuess(part);
             setLastWord(part);
+            setMyGuess(part);
 
-            if (isCoop) {
-              sendToPlayers(JSON.stringify({ guess: part, index }));
+            if (isConnected) {
+              sendToPlayers(JSON.stringify({ guess: part, index: indexRef.current }));
             }
           }, 0);
         });
       }
     }
     setInputWord('');
-  }, [inputWord, guess, gameMode, inProgressSongs, index, gameState, sendToPlayers]);
+  }, [inputWord, guess, inProgressSongs, gameState, sendToPlayers]);
 
   const handleClickShowSong = useCallback(() => {
-    if (gameState === "victory_normal" || gameState.startsWith("abandonned")) {
+    if (!gameState.startsWith("guessing")) {
       setShowAllSong((prev) => !prev);
     }
   }, [gameState]);
@@ -284,14 +332,29 @@ const App = () => {
   }, []);
 
   const handleRtcMessage = useCallback((data) => {
-    if (isCoopRef.current && data.type === "game_data") {
+    if (isConnectedRef.current && data.type === "game_data") {
       const sender = data.sender;
       const jsonData = JSON.parse(data.text);
-      if (jsonData.guess) {
-        console.log("Received guess",data);
-        console.log("Current index", indexRef.current, "Current gameMode", gameModeRef.current);
-
-        if (jsonData.index === indexRef.current && data.gameMode === gameModeRef.current) {
+      if (jsonData.songIndex !== undefined && jsonData.startTime) {
+        if (data.gameMode === gameModeRef.current) {
+          setFightIndex(jsonData.songIndex);
+          setBattleStartTime(jsonData.startTime);
+        }
+      }
+      else if (jsonData.songResult) {
+        if (data.gameMode === gameModeRef.current) {
+          if (jsonData.songResult === "victory") {
+            setGameState("defeat_battle_" + sender);
+          }
+        }
+      }
+      else if (jsonData.wantsTie) {
+        if (data.gameMode === gameModeRef.current && !wantsTie) {
+          setTieRequestOpen(true);
+        }
+      }
+      else if (jsonData.guess) {
+        if (jsonData.index === indexRef.current && data.gameMode === gameModeRef.current && gameModeRef.current !== "battle") {
           setGuessList((prev) => {
             if (prev.includes(jsonData.guess)) return prev;
             setGuess(jsonData.guess);
@@ -300,7 +363,7 @@ const App = () => {
           );
           setOtherPlayersInfo((prev) => {
             if (Object.hasOwn(prev, sender)) {
-              return {...prev, [sender]: {...prev[sender], guess: jsonData.guess}};
+              return { ...prev, [sender]: { ...prev[sender], guess: jsonData.guess } };
             }
             return prev;
           });
@@ -308,33 +371,58 @@ const App = () => {
       }
       else if (jsonData.guessList && jsonData.index === indexRef.current) {
         jsonData.guessList.forEach((guess) => {
-          setGuessList((prev) => {
-            if (prev.includes(guess)) return prev;
-            setGuess(guess);
-            return [guess, ...prev];
-          });
+          setTimeout(() => {
+            setGuessList((prev) => {
+              if (prev.includes(guess)) return prev;
+              setGuess(guess);
+              return [guess, ...prev];
+            }
+            );
+          }, 0);
         });
       }
     }
-  }, [otherPlayersInfo]);
+  }, [wantsTie]);
+
+  useEffect(() => {
+    if (wantsTie) {
+      // do all other players want a tie?
+      const allPlayers = Object.keys(otherPlayersInfo).filter((player) => otherPlayersInfo[player].battleState === "fighting");
+      if (allPlayers.length !== 0) {
+        const allWantTie = allPlayers.every((player) => otherPlayersInfo[player]?.wantsTie === true);
+        if (allWantTie) {
+          setGameState("tie_battle");
+        }
+      }
+    }
+  }, [wantsTie, otherPlayersInfo]);
+
+  useEffect(() => {
+    if (isConnected && roomId && playerName) {
+
+      const playerRef = ref(database, `rooms/${roomId}/players/${playerName}`);
+      update(playerRef, { battleState: battleState });
+
+    }
+  }, [battleState, isConnected]);
+
+  useEffect(() => {
+    if (isConnected && roomId && playerName) {
+      const playerRef = ref(database, `rooms/${roomId}/players/${playerName}`);
+      update(playerRef, { wantsTie: wantsTie });
+    }
+  }, [wantsTie, isConnected]);
 
   const handleSendGuessList = useCallback((player) => {
-    console.log("Sending guess list to", player);
     if (otherPlayersInfo[player].sendFunc) {
       otherPlayersInfo[player].sendFunc(JSON.stringify({ guessList: guessListRef.current, index: indexRef.current }));
     }
   }, [otherPlayersInfo]);
 
   useEffect(() => {
-    if (gameMode === "") return;
-    setIsCoop((gameMode === "classic" || gameMode === "NOPLP") && sendToPlayers !== null);
+    isConnectedRef.current = isConnected;
   }
-    , [gameMode, sendToPlayers]);
-
-  useEffect(() => {
-    isCoopRef.current = isCoop;
-  }
-    , [isCoop]);
+    , [isConnected]);
 
   useEffect(() => {
     indexRef.current = index;
@@ -353,6 +441,15 @@ const App = () => {
 
   return (
     <>
+      <TieRequestDialog
+        isOpen={tieRequestOpen}
+        onClose={() => setTieRequestOpen(false)}
+        onAccept={() => {
+          setWantsTie(true);
+          setTieRequestOpen(false);
+        }}
+      />
+
       <FirebaseSignalingModal
         isOpen={rtcModalOpen}
         onClose={() => setRtcModalOpen(false)}
@@ -367,6 +464,10 @@ const App = () => {
         song={song}
         gameMode={gameMode}
         gameModeRef={gameModeRef}
+        isConnected={isConnected}
+        setIsConnected={setIsConnected}
+        roomId={roomId}
+        setRoomId={setRoomId}
       />
       <FestiveModal isOpen={showVictory} onClose={() => setShowVictory(false)} state={gameState} />
       <HardcorePromptModal
@@ -399,13 +500,22 @@ const App = () => {
               sideBarLoading={sideBarLoading}
               setSideBarLoading={setSideBarLoading}
               inProgressSongs={inProgressSongs}
-              isCoop={isCoop}
+              isConnected={isConnected}
               roomPlayers={roomPlayers}
               otherPlayersInfo={otherPlayersInfo}
               setRtcModalOpen={setRtcModalOpen}
               playerName={playerName}
               sendGuessListCallback={handleSendGuessList}
               setIsReady={setIsReady}
+              battleState={battleState}
+              setBattleState={setBattleState}
+              guess={myGuess}
+              battleStartTime={battleStartTime}
+              setBattleStartTime={setBattleStartTime}
+              fightIndex={fightIndex}
+              setFightIndex={setFightIndex}
+              gameState={gameState}
+              setWantsTie={setWantsTie}
 
             />
           </GridItem>
@@ -474,7 +584,7 @@ const App = () => {
                         : '🟥'}
                     </Text>
                   )}
-                  {(gameState === "victory_normal" || gameState.startsWith("abandonned")) &&
+                  {!gameState.startsWith("guessing") && gameState && 
                     (showAllSong ? (
                       <ViewOffIcon boxSize={7} onClick={handleClickShowSong} cursor="pointer" />
                     ) : (
@@ -489,6 +599,7 @@ const App = () => {
                   index={index}
                   gameState={gameState}
                   gameMode={gameMode}
+                  gameModeRef={gameModeRef}
                   setGameState={setGameState}
                   guess={guess}
                   setGuess={setGuess}

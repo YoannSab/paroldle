@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   Box,
   HStack,
@@ -10,8 +10,9 @@ import {
   Divider,
   IconButton,
   Tooltip,
+  Flex
 } from '@chakra-ui/react';
-import { FaMusic, FaUpload } from 'react-icons/fa';
+import { FaMusic, FaUpload, FaTrophy, FaSkull, FaBalanceScale } from 'react-icons/fa';
 import useColors from '../hooks/useColors';
 import { useTranslation } from 'react-i18next';
 
@@ -24,124 +25,185 @@ const MultiplayerPanel = ({
   setGameMode,
   setIndex,
   index,
+  guess,
+  battleState,
+  foundSongs
 }) => {
   const colors = useColors();
   const { t } = useTranslation();
 
-  // Exclure le joueur actuel
-  const filteredPlayers = useMemo(
-    () => players.filter((player) => player !== playerName),
-    [players, playerName]
-  );
-
+  // Fonction pour gérer la navigation vers un mode et un index de chanson
   const handleOnClick = (player) => {
-    if (
-      !otherPlayersInfo[player] ||
-      !otherPlayersInfo[player].song ||
-      !otherPlayersInfo[player].gameMode
-    ) {
+    if (!otherPlayersInfo[player]?.song || !otherPlayersInfo[player]?.gameMode) return;
+
+    if (gameMode === otherPlayersInfo[player].gameMode && index === otherPlayersInfo[player].song.index) {
       return;
     }
-    if (
-      gameMode === otherPlayersInfo[player]?.gameMode &&
-      index === otherPlayersInfo[player]?.song.index
-    ) {
-      return;
-    }
+
     setGameMode(otherPlayersInfo[player].gameMode);
     setIndex(otherPlayersInfo[player].song.index);
   };
+
+  // Fonction pour obtenir les stats des matchs d'un joueur
+  const getMatchResults = useCallback((player) => {
+    if (!foundSongs) return { victories: 0, defeats: 0, ties: 0 };
+
+    let victories = 0, defeats = 0, ties = 0;
+
+    Object.keys(foundSongs).forEach((song) => {
+      if (foundSongs[song].winner === player) {
+        victories++;
+      }
+      else if (foundSongs[song].players.includes(player)) {
+        defeats++;
+      }
+      if (foundSongs[song].status === "tie" && foundSongs[song].players.includes(player)) ties++;
+    });
+
+    return { victories, defeats, ties };
+  }, [foundSongs]);
 
   return (
     <Box p={6} borderRadius="2xl" boxShadow="lg" bg={colors.lyricsBg} m={4}>
       <Heading fontSize="2xl" fontWeight="bold" mb={4} textAlign="center">
         🎮 {t("Multiplayer")}
       </Heading>
-      <Divider
-        borderWidth={2}
-        borderColor={colors.text}
-        width="80%"
-        mx="auto"
-        mb={4}
-      />
-      
-      <VStack spacing={4} align="start">
-        {filteredPlayers.length === 0 ? (
-          <Text fontWeight="bold" textAlign="center" w="100%">
-            {t("No other players connected")}.
-          </Text>
-        ) : (
-          filteredPlayers.map((player, idx) => {
-            const imageNumber = (idx % 4) + 1;
-            const playerImage = `/men/man_${imageNumber}.png`;
-            const latestGuess = otherPlayersInfo[player]?.guess || "...";
-            const playerGameInfo = otherPlayersInfo[player]?.song
-              ? `${t("Mode")}: ${t(otherPlayersInfo[player].gameMode)} - ${t("Index")}: ${otherPlayersInfo[player].song.index}`
-              : t("No game data");
+      <Divider borderWidth={2} borderColor={colors.text} width="80%" mx="auto" mb={4} />
 
-            return (
-              <Box
-                key={player}
-                p={4}
-                borderRadius="xl"
-                bg={colors.lyricsBg}
-                boxShadow="md"
-                w="100%"
-              >
-                <HStack spacing={4} align="center">
+      <VStack spacing={4} align="start" w="100%">
+        {[playerName, ...players.filter(item => item !== playerName)].map((player, idx) => {
+          const imageNumber = (idx % 4) + 1;
+          const playerImage = player !== playerName ? `/men/man_${imageNumber}.png` : `/men/player.jpg`;
+          const playerNameLabel = player !== playerName ? player : player + t(" (You)");
+          const latestGuess = player !== playerName ? otherPlayersInfo[player]?.guess || "..." : guess || "...";
+          const playerGameInfo = player !== playerName && otherPlayersInfo[player]?.song
+            ? `${t("Mode")}: ${t(otherPlayersInfo[player].gameMode)} - ${t("Index")}: ${otherPlayersInfo[player].song.index}`
+            : t("");
+
+          const { victories, defeats, ties } = getMatchResults(player);
+
+          return (
+            <Box key={player} p={4} borderRadius="xl" bg={colors.lyricsBg} boxShadow="md" w="100%">
+              <HStack spacing={4} w="100%" justify="space-between">
+                {/* Avatar */}
+                <HStack spacing={2}>
+                  {player !== playerName && (
+                  <Text>{otherPlayersInfo[player]?.sendFunc ? "🟢" : "🔴"}</Text>
+                  )}se
                   <Tooltip label={playerGameInfo} fontSize="sm" hasArrow>
                     <Avatar size="md" src={playerImage} name={player} />
                   </Tooltip>
-                  <VStack align="start" spacing={1} flex={1}>
-                    <Text fontWeight="bold">{player}</Text>
-                    <Badge colorScheme="blue" borderRadius="full" px={3} py={1}>
-                      {latestGuess}
-                      {latestGuess === "..." ? "" : " ?"}
-                    </Badge>
+                  <VStack spacing={0}>
+                    <Text fontWeight="bold">{playerNameLabel}</Text>
+                    {gameMode !== "battle" && (
+                      <Badge colorScheme="blue" borderRadius="full" px={2} py={1}>
+                        {latestGuess}
+                        {latestGuess === "..." ? "" : " ?"}
+                      </Badge>
+                    )}
                   </VStack>
-                  <Tooltip label={t("Send guess list")} fontSize="sm" hasArrow>
-                    <IconButton
-                      icon={<FaUpload />}
-                      variant="ghost"
-                      colorScheme="blue"
-                      size="sm"
-                      _hover={{ transform: 'scale(1.1)' }}
-                      onClick={() => sendGuessListCallback(player)}
-                    />
-                  </Tooltip>
-                  <Tooltip
-                    label={
-                      !otherPlayersInfo[player]?.song ||
-                      (gameMode === otherPlayersInfo[player]?.gameMode &&
-                        index === otherPlayersInfo[player]?.song?.index)
-                        ? t("")
-                        : t("Go to mode: ") +
-                          otherPlayersInfo[player]?.gameMode +
-                          " -> " +
-                          t("Index: ") +
-                          otherPlayersInfo[player]?.song?.index
-                    }
-                    fontSize="sm"
-                    hasArrow
-                  >
-                    <IconButton
-                      disabled={
-                        !otherPlayersInfo[player]?.song ||
-                        (gameMode === otherPlayersInfo[player]?.gameMode &&
-                          index === otherPlayersInfo[player]?.song?.index)
-                      }
-                      icon={<FaMusic />}
-                      variant="ghost"
-                      colorScheme="pink"
-                      size="sm"
-                      onClick={() => handleOnClick(player)}
-                    />
-                  </Tooltip>
                 </HStack>
-              </Box>
-            );
-          })
-        )}
+
+                {/* Nom & Statut Aligné à Droite */}
+
+                {gameMode === "battle" && (
+                  <Badge
+                    colorScheme={
+                      otherPlayersInfo[player]?.battleState === "ready" || (player === playerName && battleState === "ready")
+                        ? "green"
+                        : otherPlayersInfo[player]?.battleState === "not_participating" || (player === playerName && battleState === "not_participating")
+                          ? "red"
+                          : otherPlayersInfo[player]?.battleState === "fighting" || (player === playerName && battleState === "fighting")
+                            ? "blue"
+                            : otherPlayersInfo[player]?.battleState === "victory" || (player === playerName && battleState === "victory")
+                              ? "green"
+                              : otherPlayersInfo[player]?.battleState === "defeat" || (player === playerName && battleState === "defeat")
+                                ? "red"
+                                : otherPlayersInfo[player]?.battleState === "tie" || (player === playerName && battleState === "tie")
+                                  ? "orange"
+                                  : "yellow"
+                    }
+                    borderRadius="full"
+                    px={3}
+                    py={1}
+                  >
+                    {t(
+                      otherPlayersInfo[player]?.battleState ||
+                      (player === playerName && battleState) ||
+                      "Waiting"
+                    )}
+                  </Badge>
+                )}
+
+                {/* Boutons à Droite */}
+                {gameMode !== "battle" && player !== playerName && (
+                  <HStack spacing={2}>
+                    <Tooltip label={t("Send guess list")} fontSize="sm" hasArrow>
+                      <IconButton
+                        icon={<FaUpload />}
+                        variant="ghost"
+                        colorScheme="blue"
+                        size="sm"
+                        _hover={{ transform: "scale(1.1)" }}
+                        onClick={() => sendGuessListCallback(player)}
+                      />
+                    </Tooltip>
+                    <Tooltip
+                      label={
+                        !otherPlayersInfo[player]?.song ||
+                          (gameMode === otherPlayersInfo[player]?.gameMode &&
+                            index === otherPlayersInfo[player]?.song?.index)
+                          ? t("")
+                          : `${t("Go to mode:")} ${otherPlayersInfo[player]?.gameMode} -> ${t("Index:")} ${otherPlayersInfo[player]?.song?.index}`
+                      }
+                      fontSize="sm"
+                      hasArrow
+                    >
+                      <IconButton
+                        disabled={
+                          !otherPlayersInfo[player]?.song ||
+                          (gameMode === otherPlayersInfo[player]?.gameMode &&
+                            index === otherPlayersInfo[player]?.song?.index)
+                        }
+                        icon={<FaMusic />}
+                        variant="ghost"
+                        colorScheme="pink"
+                        size="sm"
+                        onClick={() => handleOnClick(player)}
+                      />
+                    </Tooltip>
+                  </HStack>
+                )}
+              </HStack>
+
+              {/* Statistiques Centrés en Bas */}
+              <VStack spacing={2} align="center">
+                {gameMode === "battle" && (
+                  <HStack spacing={3}>
+                    <Badge colorScheme="green" borderRadius="full" px={3} py={1}>
+                      <HStack spacing={1}>
+                        <FaTrophy />
+                        <Text>{victories}</Text>
+                      </HStack>
+                    </Badge>
+                    <Badge colorScheme="red" borderRadius="full" px={3} py={1}>
+                      <HStack spacing={1}>
+                        <FaSkull />
+                        <Text>{defeats}</Text>
+                      </HStack>
+                    </Badge>
+                    <Badge colorScheme="yellow" borderRadius="full" px={3} py={1}>
+                      <HStack spacing={1}>
+                        <FaBalanceScale />
+                        <Text>{ties}</Text>
+                      </HStack>
+                    </Badge>
+                  </HStack>
+                )}
+              </VStack>
+            </Box>
+          );
+        })}
       </VStack>
     </Box>
   );

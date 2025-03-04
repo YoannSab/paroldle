@@ -17,11 +17,12 @@ import {
   AlertIcon,
   Box,
 } from '@chakra-ui/react';
-import { ref, set, get, onChildAdded, onChildChanged, onChildRemoved, remove } from "firebase/database";
+import { ref, set, get, onChildAdded, onChildChanged, onChildRemoved, remove, onValue } from "firebase/database";
 import { database } from '../firebase';
 import { useToast } from "@chakra-ui/react";
 import Peer from 'peerjs';
 import { useTranslation } from 'react-i18next';
+import useColors from '../hooks/useColors';
 
 const FirebaseSignalingModal = ({
   isOpen,
@@ -37,14 +38,43 @@ const FirebaseSignalingModal = ({
   gameMode,
   gameModeRef,
   song,
+  isConnected,
+  setIsConnected,
+  roomId,
+  setRoomId,
 }) => {
-  const [roomId, setRoomId] = useState("");
+  const [roomInput, setRoomInput] = useState('');
+  const [playerNameInput, setPlayerNameInput] = useState('');
   const [myPeerId, setMyPeerId] = useState(null);
   const [status, setStatus] = useState('Enter a room id and a name');
-  const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState('');
   const toast = useToast();
   const { t } = useTranslation();
+
+  // Nouvel état pour stocker la liste des salles ouvertes
+  const [openRooms, setOpenRooms] = useState([]);
+
+  // Mise à jour automatique des salles ouvertes à partir de Firebase
+  useEffect(() => {
+    const roomsRef = ref(database, 'rooms');
+    const unsubscribe = onValue(roomsRef, (snapshot) => {
+      const roomsData = snapshot.val();
+      let roomsList = [];
+      if (roomsData) {
+        roomsList = Object.keys(roomsData).map((roomId) => {
+          const playersCount = roomsData[roomId].players
+            ? Object.keys(roomsData[roomId].players).length
+            : 0;
+          return { roomId, playersCount };
+        });
+      }
+      setOpenRooms(roomsList);
+    });
+    return () => {
+      // Désabonnement lors du démontage
+      unsubscribe && unsubscribe();
+    };
+  }, []);
 
   // Dès qu'on change gameMode ou song, mettre à jour Firebase (si on a roomId, playerName et myPeerId)
   useEffect(() => {
@@ -57,13 +87,14 @@ const FirebaseSignalingModal = ({
         song: song ? { index: song.index, style: song.style } : null,
       });
     }
-  }, [gameMode, song]);
+  }, [gameMode, song, roomId, playerName, myPeerId]);
 
   // Références pour PeerJS et connexions
   const peerRef = useRef(null);
   const connectionsRef = useRef({}); // { remotePeerId: DataConnection }
   // Garder en ref le playerName courant pour les messages
   const playerNameRef = useRef(playerName);
+
   useEffect(() => {
     playerNameRef.current = playerName;
   }, [playerName]);
@@ -73,7 +104,7 @@ const FirebaseSignalingModal = ({
 
   useEffect(() => {
     setIsConnected(status.startsWith('Connected'));
-  }, [status]);
+  }, [status, setIsConnected]);
 
   // Création du PeerJS dès le montage
   useEffect(() => {
@@ -127,15 +158,15 @@ const FirebaseSignalingModal = ({
   // Met à jour otherPlayersInfo en fonction des connexions ouvertes.
   const updateOtherPlayersInfo = () => {
     const openConnections = Object.values(connectionsRef.current).filter(conn => conn.open);
-
     openConnections.forEach(conn => {
       if (conn.remoteName) {
         console.log(`Updating otherPlayersInfo for ${conn.remoteName}`);
-        setOtherPlayersInfo (prev => ({...prev, 
+        setOtherPlayersInfo(prev => ({
+          ...prev, 
           [conn.remoteName]: {
             ...(prev[conn.remoteName] || {}),
             sendFunc: (msg) => {
-              conn.send({ type: 'game_data', text: msg, sender: playerNameRef.current, gameMode: gameModeRef.current});
+              conn.send({ type: 'game_data', text: msg, sender: playerNameRef.current, gameMode: gameModeRef.current });
             },
           },
         }));
@@ -158,26 +189,31 @@ const FirebaseSignalingModal = ({
 
   // Rejoindre la room et écouter Firebase
   const joinRoom = async () => {
-    if (!roomId || !playerName) {
+    if (!roomInput || !playerNameInput) {
       setError("Please enter a room id and a name");
       return;
     }
+    setRoomId(roomInput);
+    setPlayerName(playerNameInput);
+
+    const roomIdLocal = roomInput;
+    const playerNameLocal = playerNameInput;
     if (!myPeerId) {
       setError("Waiting for Peer initialization...");
       return;
     }
-    const playersSnapshot = await get(ref(database, `rooms/${roomId}/players`));
+    const playersSnapshot = await get(ref(database, `rooms/${roomIdLocal}/players`));
     if (playersSnapshot.exists()) {
       const playersData = playersSnapshot.val();
-      const isNameTaken = Object.values(playersData).some((player) => player.name === playerName);
+      const isNameTaken = Object.values(playersData).some((player) => player.name === playerNameLocal);
       if (isNameTaken) {
         setError("This name is already taken, please choose another one");
         return;
       }
     }
     // Enregistrer notre présence avec les infos (gameMode et song si disponibles)
-    await set(ref(database, `rooms/${roomId}/players/${playerName}`), {
-      name: playerName,
+    await set(ref(database, `rooms/${roomIdLocal}/players/${playerNameLocal}`), {
+      name: playerNameLocal,
       peerId: myPeerId,
       gameMode: gameModeRef.current || null,
       song: song ? { index: song.index, style: song.style } : null,
@@ -185,17 +221,17 @@ const FirebaseSignalingModal = ({
     setStatus("Connected to a room, waiting for players...");
     setError('');
     setRoomPlayers(prev => {
-      if (!prev.includes(playerName)) return [...prev, playerName];
+      if (!prev.includes(playerNameLocal)) return [...prev, playerNameLocal];
       return prev;
     });
 
-    const playersRef = ref(database, `rooms/${roomId}/players`);
+    const playersRef = ref(database, `rooms/${roomIdLocal}/players`);
 
     // Mise à jour initiale de otherPlayersInfo à partir de la snapshot
     if (playersSnapshot.exists()) {
       const playersData = playersSnapshot.val();
       Object.keys(playersData).forEach(remoteName => {
-        if (remoteName !== playerName) {
+        if (remoteName !== playerNameLocal) {
           const remoteData = playersData[remoteName];
           if (remoteData && remoteData.peerId) {
             setOtherPlayersInfo(prev => {
@@ -219,7 +255,7 @@ const FirebaseSignalingModal = ({
     onChildAdded(playersRef, (snapshot) => {
       const remoteName = snapshot.key;
       const remoteData = snapshot.val();
-      if (remoteName !== playerName && remoteData && remoteData.peerId) {
+      if (remoteName !== playerNameLocal && remoteData && remoteData.peerId) {
         playersMappingRef.current[remoteData.peerId] = remoteName;
         setOtherPlayersInfo(prev => {
           const newInfo = {
@@ -233,7 +269,6 @@ const FirebaseSignalingModal = ({
           };
           return newInfo;
         });
-
         // Seul le pair dont l'ID est inférieur initie la connexion
         if (myPeerId && myPeerId < remoteData.peerId) {
           if (!connectionsRef.current[remoteData.peerId]) {
@@ -261,13 +296,15 @@ const FirebaseSignalingModal = ({
     onChildChanged(playersRef, (snapshot) => {
       const remoteName = snapshot.key;
       const remoteData = snapshot.val();
-      if (remoteName !== playerName && remoteData && remoteData.peerId) {
+      if (remoteName !== playerNameLocal && remoteData && remoteData.peerId) {
         setOtherPlayersInfo(prev => ({
           ...prev,
           [remoteName]: {
             ...prev[remoteName],
             gameMode: remoteData.gameMode,
             song: remoteData.song,
+            battleState: remoteData.battleState || prev[remoteName]?.battleState || "waiting",
+            wantsTie : remoteData.wantsTie || false,
           }
         }));
       }
@@ -336,6 +373,7 @@ const FirebaseSignalingModal = ({
     };
   }, [isConnected]);
 
+  const colors = useColors();
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <ModalOverlay bg="blackAlpha.500" />
@@ -351,19 +389,40 @@ const FirebaseSignalingModal = ({
         </ModalHeader>
         <ModalCloseButton color="white" />
         <ModalBody pb={6} mt={4}>
-          <VStack spacing={4}>
+          <VStack spacing={4} align="stretch">
+            {/* Affichage des salles ouvertes */}
+            <Box w="100%" p={3} bgColor={colors.filtersBg} borderRadius="md" borderWidth={2}>
+              <Text fontWeight="bold" mb={2} textAlign="center">
+                {t("Available Rooms")}
+              </Text>
+              {openRooms.length > 0 ? (
+                <VStack spacing={2} align="stretch">
+                  {openRooms.map((room) => (
+                    <HStack key={room.roomId} justify="space-between" px={3}>
+                      <Text fontWeight="medium">{room.roomId}</Text>
+                      <Badge colorScheme="green">
+                        {room.playersCount} {t("players")}
+                      </Badge>
+                    </HStack>
+                  ))}
+                </VStack>
+              ) : (
+                <Text textAlign="center">{t("No open rooms")}</Text>
+              )}
+            </Box>
+            {/* Entrées pour rejoindre une salle */}
             <Input
               placeholder={t("Room ID")}
-              value={roomId}
-              onChange={(e) => setRoomId(e.target.value)}
+              value={roomInput}
+              onChange={(e) => setRoomInput(e.target.value)}
               variant="filled"
               size="lg"
               focusBorderColor="teal.500"
             />
             <Input
               placeholder={t("Your name")}
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
+              value={playerNameInput}
+              onChange={(e) => setPlayerNameInput(e.target.value)}
               variant="filled"
               size="lg"
               focusBorderColor="teal.500"
@@ -375,7 +434,7 @@ const FirebaseSignalingModal = ({
               </Alert>
             )}
             <HStack spacing={4} pt={2}>
-              <Button onClick={joinRoom} colorScheme="teal" size="lg">
+              <Button onClick={joinRoom} colorScheme="teal" size="lg" isDisabled={isConnected || !roomInput || !playerNameInput}>
                 {t("Join a room")}
               </Button>
               <Button onClick={disconnect} colorScheme="red" size="lg" isDisabled={!isConnected}>
@@ -383,7 +442,9 @@ const FirebaseSignalingModal = ({
               </Button>
             </HStack>
             <Box pt={4} textAlign="center">
-              <Text fontWeight="bold">{t("Status")} : {t(status)}</Text>
+              <Text fontWeight="bold">
+                {t("Status")} : {t(status)}
+              </Text>
             </Box>
             {isConnected && (
               <Box pt={4} w="100%">
