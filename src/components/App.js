@@ -516,6 +516,7 @@ const App = () => {
               setFightIndex={setFightIndex}
               gameState={gameState}
               setWantsTie={setWantsTie}
+              roomId={roomId}
 
             />
           </GridItem>

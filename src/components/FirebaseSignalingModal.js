@@ -418,6 +418,12 @@ const FirebaseSignalingModal = ({
               variant="filled"
               size="lg"
               focusBorderColor="teal.500"
+              // on press enter, join the room
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && roomInput && playerNameInput) {
+                  joinRoom();
+                }
+              }}
             />
             <Input
               placeholder={t("Your name")}
@@ -426,6 +432,12 @@ const FirebaseSignalingModal = ({
               variant="filled"
               size="lg"
               focusBorderColor="teal.500"
+              // on press enter, join the room
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && roomInput && playerNameInput) {
+                  joinRoom();
+                }
+              }}
             />
             {error && (
               <Alert status="error" borderRadius="md">

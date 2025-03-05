@@ -56,6 +56,7 @@ const Sidebar = ({
   fightIndex,
   gameState,
   setWantsTie,
+  roomId,
 }) => {
   const colors = useColors();
   const { t } = useTranslation();
@@ -377,6 +378,7 @@ const Sidebar = ({
               guess={guess}
               foundSongs={foundSongs}
               battleState={battleState}
+              roomId={roomId}
             />
           )}
           {/* Contenu des onglets */}
@@ -436,7 +438,8 @@ const Sidebar = ({
                 (
                   <Loading />
                 ) : (
-                  <><OneVsOne
+                  <>
+                  <OneVsOne
                     filteredSongs={filteredFlat}
                     allSongs={allSongs}
                     setIndex={setIndex}
@@ -455,6 +458,7 @@ const Sidebar = ({
                     setWantsTie={setWantsTie} />
 
                     <Filters
+                      gameMode={gameMode}
                       availableLanguages={availableLanguages}
                       availableDecades={availableDecades}
                       availableStyles={availableStyles}

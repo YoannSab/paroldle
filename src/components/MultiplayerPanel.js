@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import {
   Box,
   HStack,
@@ -27,7 +27,8 @@ const MultiplayerPanel = ({
   index,
   guess,
   battleState,
-  foundSongs
+  foundSongs,
+  roomId,
 }) => {
   const colors = useColors();
   const { t } = useTranslation();
@@ -46,7 +47,10 @@ const MultiplayerPanel = ({
 
   // Fonction pour obtenir les stats des matchs d'un joueur
   const getMatchResults = useCallback((player) => {
-    if (!foundSongs) return { victories: 0, defeats: 0, ties: 0 };
+    if (!foundSongs ||
+        Object.values(foundSongs).some((song) => typeof song !== "object") ||
+        !Object.keys(foundSongs).length
+    ) return { victories: 0, defeats: 0, ties: 0 };
 
     let victories = 0, defeats = 0, ties = 0;
 
@@ -54,7 +58,7 @@ const MultiplayerPanel = ({
       if (foundSongs[song].winner === player) {
         victories++;
       }
-      else if (foundSongs[song].players.includes(player)) {
+      else if (foundSongs[song].players.includes(player) && foundSongs[song].winner !== "tie") {
         defeats++;
       }
       if (foundSongs[song].status === "tie" && foundSongs[song].players.includes(player)) ties++;
@@ -66,14 +70,14 @@ const MultiplayerPanel = ({
   return (
     <Box p={6} borderRadius="2xl" boxShadow="lg" bg={colors.lyricsBg} m={4}>
       <Heading fontSize="2xl" fontWeight="bold" mb={4} textAlign="center">
-        🎮 {t("Multiplayer")}
+      🎮 {t("Room")} <Text as={"span"} color="blue.300">{roomId.toUpperCase()}</Text>
       </Heading>
       <Divider borderWidth={2} borderColor={colors.text} width="80%" mx="auto" mb={4} />
 
       <VStack spacing={4} align="start" w="100%">
         {[playerName, ...players.filter(item => item !== playerName)].map((player, idx) => {
           const imageNumber = (idx % 4) + 1;
-          const playerImage = player !== playerName ? `/men/man_${imageNumber}.png` : `/men/player.jpg`;
+          const playerImage = player !== playerName ? `/men/man_${imageNumber}.png` : `/men/player.JPG`;
           const playerNameLabel = player !== playerName ? player : player + t(" (You)");
           const latestGuess = player !== playerName ? otherPlayersInfo[player]?.guess || "..." : guess || "...";
           const playerGameInfo = player !== playerName && otherPlayersInfo[player]?.song
@@ -87,20 +91,14 @@ const MultiplayerPanel = ({
               <HStack spacing={4} w="100%" justify="space-between">
                 {/* Avatar */}
                 <HStack spacing={2}>
-                  {player !== playerName && (
-                  <Text>{otherPlayersInfo[player]?.sendFunc ? "🟢" : "🔴"}</Text>
-                  )}se
+
+                  <Text>{player === playerName || otherPlayersInfo[player]?.sendFunc ? "🟢" : "🔴"}</Text>
+
                   <Tooltip label={playerGameInfo} fontSize="sm" hasArrow>
                     <Avatar size="md" src={playerImage} name={player} />
                   </Tooltip>
-                  <VStack spacing={0}>
+                  <VStack spacing={2}>
                     <Text fontWeight="bold">{playerNameLabel}</Text>
-                    {gameMode !== "battle" && (
-                      <Badge colorScheme="blue" borderRadius="full" px={2} py={1}>
-                        {latestGuess}
-                        {latestGuess === "..." ? "" : " ?"}
-                      </Badge>
-                    )}
                   </VStack>
                 </HStack>
 
@@ -130,7 +128,7 @@ const MultiplayerPanel = ({
                     {t(
                       otherPlayersInfo[player]?.battleState ||
                       (player === playerName && battleState) ||
-                      "Waiting"
+                      "waiting"
                     )}
                   </Badge>
                 )}
@@ -177,8 +175,8 @@ const MultiplayerPanel = ({
               </HStack>
 
               {/* Statistiques Centrés en Bas */}
-              <VStack spacing={2} align="center">
-                {gameMode === "battle" && (
+              <Flex justify="center" w="100%" mt={2}>
+                {gameMode === "battle" ? (
                   <HStack spacing={3}>
                     <Badge colorScheme="green" borderRadius="full" px={3} py={1}>
                       <HStack spacing={1}>
@@ -199,8 +197,15 @@ const MultiplayerPanel = ({
                       </HStack>
                     </Badge>
                   </HStack>
+                ) : (
+
+                  <Badge colorScheme="blue" borderRadius="full" px={2} py={1}>
+                    {latestGuess}
+                    {latestGuess === "..." ? "" : " ?"}
+                  </Badge>
+
                 )}
-              </VStack>
+              </Flex>
             </Box>
           );
         })}

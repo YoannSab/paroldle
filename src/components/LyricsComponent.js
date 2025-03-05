@@ -579,7 +579,7 @@ const LyricWords = memo(
         textAlign="center"
         borderRadius="md"
         transform="translateY(3px)"
-        width={partialMatch ? `${partialMatch.length}ch` : `${word.length - 0.2 * word.length}ch`}
+        width={partialMatch ? `${Math.max(partialMatch.length, word.length) - 0.2* Math.max(partialMatch.length, word.length)}ch` : `${word.length - 0.2 * word.length}ch`}
         height="1.5ch"
       >
         {showWordLength && (
@@ -605,7 +605,6 @@ const LyricWords = memo(
             transform="translate(-50%, -52%)"
             fontSize="sm"
             fontFamily="inherit"
-            width={Math.max(partialMatch.length, word.length) + "ch"}
           >
             {partialMatch}
           </Text>

@@ -1,22 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Button, Text, Heading, VStack, HStack, Divider, Tooltip, Icon, Flex, useColorModeValue } from '@chakra-ui/react';
+import { Box, Button, Text, Heading, VStack, HStack, Divider, Tooltip, Icon, Flex, useColorModeValue, Image } from '@chakra-ui/react';
 import { List, ListItem } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import useColors from '../hooks/useColors';
 import { FaClock, FaHandshake } from 'react-icons/fa';
 
 
-const SongsList = ({ allSongs, foundSongs }) => {
+const SongsList = ({ allSongs, foundSongs, playerName }) => {
     const redButton = useColorModeValue('red.300', 'red.600');
     const greenButton = useColorModeValue('green.300', 'green.600');
     const yellowButton = useColorModeValue('yellow.300', 'yellow.600');
+
+    const { t } = useTranslation();
+
     if (!allSongs || !foundSongs) return null;
+    // if foundSong[song] is not type dict then it will return null
+    if (Object.values(foundSongs).some(song => typeof song !== 'object')) return null;
+
     return (
         <List spacing={3} overflow={'auto'} maxH={'400px'}>
             {Object.keys(foundSongs).map((song, i) => {
                 const label = foundSongs[song] ?
-                    ((foundSongs[song].status == "victory" ? "Victory" : foundSongs[song].status == "defeat" ? "Defeat" : "Tie")
-                        + " against " + foundSongs[song]?.players.join(", ")) : "No result";
+                    ((foundSongs[song].status === "victory" ? t("Victory") : foundSongs[song].status === "defeat" ? t("Defeat") : t("Tie"))
+                        + t(" against ") + foundSongs[song]?.players.filter(player => player !== playerName).join(", ")) : "";
                 return (
                     <Tooltip
                         key={i}
@@ -29,7 +35,7 @@ const SongsList = ({ allSongs, foundSongs }) => {
                             border="2px"
                             borderColor="gray.200"
                             borderRadius="md"
-                            bgColor={foundSongs[song]?.status == "victory" ? greenButton : foundSongs[song]?.status == "defeat" ? redButton : yellowButton}                        >
+                            bgColor={foundSongs[song]?.status === "victory" ? greenButton : foundSongs[song]?.status === "defeat" ? redButton : yellowButton}                        >
                             <Text><Text as={'b'}>{allSongs[song]?.title}</Text> - {allSongs[song]?.author}</Text>
                         </ListItem>
                     </Tooltip>
@@ -63,6 +69,7 @@ const OneVsOne = ({
     const [combatStarted, setCombatStarted] = useState(false);
     const [combatTimer, setCombatTimer] = useState(0);
     const [isTieButtonDisabled, setIsTieButtonDisabled] = useState(false);
+    const [isRolling, setIsRolling] = useState(false); // État pour l'animation de dés
 
     // Boutons de préparation
     const handleReadyUp = () => {
@@ -92,8 +99,6 @@ const OneVsOne = ({
         });
     }, [otherPlayersInfo]);
 
-
-
     // Vérifier que tous les joueurs ont choisi un état ("ready" ou "not_participating")
     useEffect(() => {
         if (combatStarted || countdown !== null) return;
@@ -116,24 +121,24 @@ const OneVsOne = ({
             const isSelector = sortedPlayers[0] === playerName;
             if (isSelector && fightIndex === null) {
                 // Le sélecteur choisit l'index aléatoire
-                const randomSong = filteredSongs[Math.floor(Math.random() * filteredSongs.length)];
-                const randomIndex = randomSong ? randomSong.index : null;
-                if (isNaN(randomIndex)) return;
-                setFightIndex(randomIndex);
-                const startTime = Date.now() + 5000; // démarrage prévu dans 5s
-                // Envoyer l'index et l'heure de démarrage aux autres joueurs
-                sendToPlayers(JSON.stringify({ songIndex: randomIndex, startTime }));
-                setBattleStartTime(startTime);
-                setCountdown(Math.ceil((startTime - Date.now()) / 1000));
+                setIsRolling(true); // Démarre l'animation de dés
+                setTimeout(() => {
+                    const randomSong = filteredSongs[Math.floor(Math.random() * filteredSongs.length)];
+                    const randomIndex = randomSong ? randomSong.index : null;
+                    if (isNaN(randomIndex)) return;
+                    setFightIndex(randomIndex);
+                    const startTime = Date.now() + 5000; // démarrage prévu dans 5s
+                    // Envoyer l'index et l'heure de démarrage aux autres joueurs
+                    sendToPlayers(JSON.stringify({ songIndex: randomIndex, startTime }));
+                    setBattleStartTime(startTime);
+                    setCountdown(Math.ceil((startTime - Date.now()) / 1000));
+                    setIsRolling(false); // Arrête l'animation de dés
+                }, 2500); // Durée de l'animation de dés
             } else if (!isSelector && fightIndex !== null && battleStartTime) {
                 // Les autres joueurs ont reçu l'index via RTC
                 setCountdown(Math.ceil((battleStartTime - Date.now()) / 1000));
             }
         } 
-        // else if (!allPlayersSet && countdown !== null) {
-        //     // Si un joueur change d'état pendant le décompte, on l'annule
-        //     setCountdown(null);
-        // }
     }, [battleState, otherPlayersInfo, roomPlayers, fightIndex, battleStartTime]);
 
     // Décompte avant le lancement du combat
@@ -198,8 +203,6 @@ const OneVsOne = ({
     }
         , [gameState]);
 
-
-
     return (
         <VStack spacing={6} align="stretch">
             {/* Battle Box */}
@@ -220,15 +223,33 @@ const OneVsOne = ({
                 ) : !combatStarted ? (
                     <VStack spacing={5}>
                         <Text textAlign="center" fontSize="lg" fontWeight={"bold"}>
-                            {t("Battle against your friends! The first to find the song title wins trophies.")}
+                            {t("The first to find the song title wins trophies.")}
                         </Text>
+                        { filteredSongs.length === 0 ? (
+                            <Text textAlign="center" fontSize="lg" fontWeight={"bold"}>
+                                {t("Uncheck some filters to get more songs!")}
+                            </Text>
+                        ) : (
+                        <Text textAlign="center" fontSize="lg" fontWeight={"bold"}>
+                            {t("Random choice among")} <Text as="span" color="yellow.400">{filteredSongs.length}</Text> {t("songs")}!
+                        </Text>
+                        )}
+                        {isRolling && (
+                            <Image
+                                mt={-50}
+                                src="https://media.tenor.com/siAgcqv9oSYAAAAi/roll-1.gif"
+                                alt="Rolling dice"
+                                width={100}
+                                height={100}
+                            />
+                        )}
                         <HStack spacing={4}>
                             <Button
                                 colorScheme="red"
                                 size="md"
                                 onClick={handleReadyUp}
-                                isDisabled={roomPlayers.length < 2 || battleState === "ready"}
-                                _hover={{ transform: (roomPlayers.length < 2 || battleState === "ready") ? "none" : "scale(1.05)" }}
+                                isDisabled={roomPlayers.length < 2 || battleState === "ready" || filteredSongs.length === 0}
+                                _hover={{ transform: (roomPlayers.length < 2 || battleState === "ready" || filteredSongs.length === 0) ? "none" : "scale(1.05)" }}
                             >
                                 {t("Ready to battle!")}
                             </Button>
@@ -241,7 +262,6 @@ const OneVsOne = ({
                             >
                                 {t("Not participating")}
                             </Button>
-
                         </HStack>
                     </VStack>
                 ) : (
@@ -275,11 +295,11 @@ const OneVsOne = ({
                 <Divider borderWidth={2} borderColor="gray.600" width="80%" mx="auto" mb={4} />
 
                 {Object.keys(allSongs).length === 0 || !foundSongs || Object.keys(foundSongs).length === 0 ? (
-                    <Text textAlign="center" fontSize="lg" color="gray.400">
+                    <Text textAlign="center" fontSize="lg" fontWeight={"bold"}>
                         {t("No finished fights yet.")}
                     </Text>
                 ) : (
-                    <SongsList allSongs={allSongs} foundSongs={foundSongs} />
+                    <SongsList allSongs={allSongs} foundSongs={foundSongs} playerName={playerName} />
                 )}
             </Box>
         </VStack>

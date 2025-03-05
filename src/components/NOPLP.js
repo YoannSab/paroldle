@@ -71,7 +71,10 @@ const NOPLP = ({ allSongs, setIndex, foundSongs, index, inProgressSongs }) => {
     }, [searchQuery, allSongs]);
 
     const filteredSongsHistory = useMemo(() => {
-        if (!foundSongs || Object.keys(foundSongs).length === 0) return [];
+        if (!foundSongs || 
+            Object.keys(foundSongs).length === 0 ||
+            Object.values(foundSongs).some(song => typeof song === 'object')
+        ) return [];
         return Object.values(allSongs).filter(song => Object.hasOwn(foundSongs, song.index));
     }, [foundSongs, allSongs]);
 

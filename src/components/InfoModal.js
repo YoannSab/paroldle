@@ -31,70 +31,85 @@ const ParoldleModal = ({ isOpen, onClose, autoplay, setAutoplay }) => {
                     <VStack spacing={4} align="stretch">
                         <Text>
                             {t("Guess the")} <Text as="span" fontWeight="bold" color="blue.300">{t("song titles")}</Text> {t("from the lyrics")} !{" "}
-                            {t("The more titles you find")},{" "} {t("the more trophies you earn")} <Icon as={FaTrophy} color="yellow.400" /> {t("and unlock new songs")} ! 🎤
+                            {t("The more titles you find")}, {t("the more trophies you earn")} <Icon as={FaTrophy} color="yellow.400" /> {t("and unlock new songs")} ! 🏆
                         </Text>
-                        
+                        <Text>
+                            {t("Invite your friends to ")} <Text as="span" fontWeight="bold" color="blue.300">{t("help you out")}</Text> 🤝 {t("and play together")} !{" "}
+                            {t("You can also challenge them in")} <Text as="span" fontWeight="bold" color="blue.300">{t("Battle Mode")}</Text> {t("to steal their trophies")} 🏆
+                        </Text>
+
                         <Text fontWeight="bold" fontSize="xl" textAlign="center" color="blue.400">
                             🎮 {t("Available game modes")}
                         </Text>
-                        
+
                         <VStack spacing={3} align="start" p={4} borderRadius="md" bg={colors.backgroundLight} boxShadow="md">
                             <Text fontWeight="bold" fontSize="lg">
                                 🎼 {t("Classic Mode")}
                             </Text>
                             <Text>
-                                {t("Find the")} <Text as="span" fontWeight="bold" color="blue.300">{t("song titles")}</Text> {t("from the lyrics")}.
-                                {" "}{t("Once found, switch to")} <Text as="span" fontWeight="bold" color="red.400">{t("Hardcore Mode")} 🔥</Text>
-                                {t("and guess all the lyrics")} {t("to earn bonus points")} !
+                                {t("Find the")} <Text as="span" fontWeight="bold" color="blue.300">{t("song titles")}</Text> {t("from the lyrics")}.{" "}
+                                {t("Once found, switch to")} <Text as="span" fontWeight="bold" color="red.400">{t("Hardcore Mode")} 🔥</Text> {t("to guess all the lyrics and earn bonus points")}.
                             </Text>
                         </VStack>
-                        
+
                         <VStack spacing={3} align="start" p={4} borderRadius="md" bg={colors.backgroundLight} boxShadow="md">
                             <Text fontWeight="bold" fontSize="lg">
-                                🎤 {t("NOPLP Mode")}
+                                ⚔️ {t("NOPLP Mode")}
                             </Text>
                             <Text>
-                                {t("Select a song from the database")} {t("and try to find")} <Text as="span" fontWeight="bold" color="blue.300">{t("all the lyrics")}</Text> !
-                                {" "}{t("The more you find")}, {t("the more points you score")} 🎶
+                                {t("Select a song from the database")} {t("and try to find")} <Text as="span" fontWeight="bold" color="blue.300">{t("all the lyrics")}</Text> !{" "}
+                                {/* {t("The more you find")}, {t("the more points you score")} 🎶 */}
                             </Text>
                         </VStack>
-                        
-                        <Divider />
-                        
-                        <Text fontWeight="bold" fontSize="xl" textAlign="center">
-                            ⚙️ {t("Settings")}
-                        </Text>
-                        <VStack spacing={4} align={"center"}>
-                            <HStack>
-                                <Text fontWeight="bold" fontSize="md" textAlign="center">
-                                    🎧 {t("Autoplay")}
-                                </Text>
-                                <Switch
-                                    id="autoplay"
-                                    isChecked={autoplay}
-                                    onChange={(e) => setAutoplay(e.target.checked)}
-                                    colorScheme="blue"
-                                />
-                            </HStack>
-                            <HStack>
-                                <Text fontWeight="bold" fontSize="md" textAlign="center">
-                                    🎨 {t("Theme")}
-                                </Text>
-                                <IconButton
-                                    icon={<Icon as={colorMode === "light" ? FaMoon : FaSun} />}
-                                    onClick={toggleColorMode}
-                                    colorScheme={colorMode === "light" ? "purple" : "yellow"}
-                                    size={"sm"}
-                                />
-                            </HStack>
-                            <HStack>
-                                <Text fontWeight="bold" fontSize="md" textAlign="center">
-                                    🌍 {t("Language")}
-                                </Text>
-                                <Button onClick={() => handleSwitchLanguage()} colorScheme="blue" borderRadius="full" size={"sm"}>
-                                    {i18n.language === "fr" ? "🇬🇧 English" : "🇫🇷 Français"}
-                                </Button>
-                            </HStack>
+
+                        <VStack spacing={3} align="start" p={4} borderRadius="md" bg={colors.backgroundLight} boxShadow="md">
+                            <Text fontWeight="bold" fontSize="lg">
+                                🎵 {t("Battle Mode")}
+                            </Text>
+                            <Text>
+                                {t("Challenge your friends in a musical duel")} !{" "}
+                                {t("Be the first to find the")} <Text as="span" fontWeight="bold" color="blue.300">{t("song titles")}</Text>{" "}
+                                {t("to win the battle and steal trophies")} 🏆
+                            </Text>
+                        </VStack>
+
+
+                        <Divider borderWidth={2} borderColor={colors.text} width="80%" mx="auto" my={4} />
+
+                        <VStack spacing={3} align="stretch">
+                            <Text fontWeight="bold" fontSize="lg" textAlign="center">
+                                ⚙️ {t("Settings")}
+                            </Text>
+
+                            <VStack spacing={3} align="center">
+                                <HStack spacing={3}>
+                                    <Text fontSize="md" fontWeight="medium">🎧 {t("Autoplay")}</Text>
+                                    <Switch
+                                        id="autoplay"
+                                        isChecked={autoplay}
+                                        onChange={(e) => setAutoplay(e.target.checked)}
+                                        colorScheme="blue"
+                                        size="md"
+                                    />
+                                </HStack>
+
+                                <HStack spacing={3}>
+                                    <Text fontSize="md" fontWeight="medium">🎨 {t("Theme")}</Text>
+                                    <IconButton
+                                        icon={<Icon as={colorMode === "light" ? FaMoon : FaSun} />}
+                                        onClick={toggleColorMode}
+                                        colorScheme={colorMode === "light" ? "purple" : "yellow"}
+                                        size="sm"
+                                    />
+                                </HStack>
+
+                                <HStack spacing={3}>
+                                    <Text fontSize="md" fontWeight="medium">🌍 {t("Language")}</Text>
+                                    <Button onClick={handleSwitchLanguage} colorScheme="blue" size="sm">
+                                        {i18n.language === "fr" ? "🇬🇧 English" : "🇫🇷 Français"}
+                                    </Button>
+                                </HStack>
+                            </VStack>
                         </VStack>
                     </VStack>
                 </ModalBody>

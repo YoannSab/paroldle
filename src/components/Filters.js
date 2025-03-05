@@ -2,9 +2,11 @@ import { memo } from 'react';
 import { Box, Heading, Stack, Divider, Checkbox, CheckboxGroup, Text } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import useColors from '../hooks/useColors';
+import { styleEmojis } from '../constants';
 
 // ---------- Filters ----------
 const Filters = memo(({
+  gameMode,
   availableLanguages,
   availableDecades,
   availableStyles,
@@ -73,13 +75,13 @@ const Filters = memo(({
         {/* Filtre Style */}
         <Box>
           <Text fontWeight="bold" mb={2}>
-            {t("Style")}
+            {t("Style")} 
           </Text>
           <CheckboxGroup value={selectedStyles} onChange={(vals) => setSelectedStyles(vals)}>
             <Stack direction="row" wrap="wrap">
               {availableStyles.map((style) => (
                 <Checkbox key={style} value={style}>
-                  {style}
+                  {t(style)} {styleEmojis[style]}
                 </Checkbox>
               ))}
             </Stack>
@@ -87,6 +89,7 @@ const Filters = memo(({
         </Box>
 
         {/* Filtre État de la chanson */}
+        { gameMode !== 'battle' && (
         <Box>
           <Text fontWeight="bold" mb={2}>
             {t("Song status")}
@@ -106,6 +109,7 @@ const Filters = memo(({
             </Stack>
           </CheckboxGroup>
         </Box>
+        )}
       </Stack>
     </Box>
   );

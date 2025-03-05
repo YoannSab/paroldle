@@ -54,10 +54,6 @@ const Header = ({ onInfoClick, trophies }) => {
                     size={'md'}
                 />
             </HStack>
-
-            {/* <Heading size="lg" mb="4" color="white" textAlign="center">
-                
-            </Heading> */}
         </Box>
     );
 };
