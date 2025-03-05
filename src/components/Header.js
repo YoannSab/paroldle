@@ -46,12 +46,14 @@ const Header = ({ onInfoClick, trophies }) => {
             {/* Bouton d'information en haut à droite */}
             <HStack position="absolute" top="2" right="2">
                 <IconButton
-                    icon={<InfoIcon />}
+                    icon={<InfoIcon w={6} h={6} />}
                     aria-label="Info"
                     onClick={onInfoClick}
                     variant="outline"
                     color="white"
-                    size={'md'}
+                    width={50}
+                    height={50}
+                    borderRadius="full"
                 />
             </HStack>
         </Box>

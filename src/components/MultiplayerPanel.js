@@ -29,6 +29,7 @@ const MultiplayerPanel = ({
   battleState,
   foundSongs,
   roomId,
+  selectedImage
 }) => {
   const colors = useColors();
   const { t } = useTranslation();
@@ -58,7 +59,7 @@ const MultiplayerPanel = ({
       if (foundSongs[song].winner === player) {
         victories++;
       }
-      else if (foundSongs[song].players.includes(player) && foundSongs[song].winner !== "tie") {
+      else if (foundSongs[song].players.includes(player) && foundSongs[song].status !== "tie") {
         defeats++;
       }
       if (foundSongs[song].status === "tie" && foundSongs[song].players.includes(player)) ties++;
@@ -76,13 +77,21 @@ const MultiplayerPanel = ({
 
       <VStack spacing={4} align="start" w="100%">
         {[playerName, ...players.filter(item => item !== playerName)].map((player, idx) => {
-          const imageNumber = (idx % 4) + 1;
-          const playerImage = player !== playerName ? `/men/man_${imageNumber}.png` : `/men/player.JPG`;
-          const playerNameLabel = player !== playerName ? player : player + t(" (You)");
+          const imageNumber = otherPlayersInfo[player]?.profilePicture ?? `pdp${(idx % 4) + 1}`;
+          const playerImage = player !== playerName ? `/characters/${imageNumber}.png` : `/characters/${selectedImage}.png`;
+          
           const latestGuess = player !== playerName ? otherPlayersInfo[player]?.guess || "..." : guess || "...";
           const playerGameInfo = player !== playerName && otherPlayersInfo[player]?.song
             ? `${t("Mode")}: ${t(otherPlayersInfo[player].gameMode)} - ${t("Index")}: ${otherPlayersInfo[player].song.index}`
             : t("");
+
+          const sortedPlayers = [...players].filter((player) => player === playerName ? battleState !== "not_participating" :
+                                                  otherPlayersInfo[player].battleState !== "not_participating")
+                                                  .sort((a, b) => a.localeCompare(b));
+          const isSelector = sortedPlayers[0] === player;
+
+          let playerNameLabel = isSelector ? "👑 " : "";
+          playerNameLabel += player !== playerName ? player : player + t(" (You)");
 
           const { victories, defeats, ties } = getMatchResults(player);
 

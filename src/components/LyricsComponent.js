@@ -29,6 +29,9 @@ const LyricsComponent = ({
   autoplay,
   trophies,
   setTrophies,
+  sendToBattlePlayers,
+  otherPlayersInfo,
+  battleStateRef
 }) => {
   const colors = useColors();
   const { t } = useTranslation();
@@ -66,10 +69,10 @@ const LyricsComponent = ({
   useEffect(() => {
     if (song && index !== null && gameModeRef.current !== "") {
       setIsReady(false);
-      const storedFound = localStorage.getItem(`paroldle_${gameModeRef.current}_found_${index}`);
-      const storedPartial = localStorage.getItem(`paroldle_${gameModeRef.current}_partial_${index}`);
-      const storedClues = localStorage.getItem(`paroldle_${gameModeRef.current}_clues_${index}`);
-      const storedSemanticPartial = localStorage.getItem(`paroldle_${gameModeRef.current}_semanticPartial_${index}`);
+      const storedFound = gameModeRef.current !== "battle" ? localStorage.getItem(`paroldle_${gameModeRef.current}_found_${index}`) : null;
+      const storedPartial = gameModeRef.current !== "battle" ? localStorage.getItem(`paroldle_${gameModeRef.current}_partial_${index}`) : null;
+      const storedClues = gameModeRef.current !== "battle" ? localStorage.getItem(`paroldle_${gameModeRef.current}_clues_${index}`) : null;
+      const storedSemanticPartial = gameModeRef.current !== "battle" ? localStorage.getItem(`paroldle_${gameModeRef.current}_semanticPartial_${index}`) : null;
       setFound(storedFound ? JSON.parse(storedFound) : initialFound);
       setPartial(
         storedPartial ? JSON.parse(storedPartial) : { title: {}, lyrics: {}, artist: {} }
@@ -86,18 +89,22 @@ const LyricsComponent = ({
   }, [song, index]); // Voir pour ajouter gameMode
 
   useEffect(() => {
-    if (isReady && song && index !== null && gameMode !== "") {
-      localStorage.setItem(`paroldle_${gameMode}_found_${index}`, JSON.stringify(found));
+    if (isReady && song && index !== null && gameModeRef.current !== "") {
+      if (gameModeRef.current !== "battle") {
+        localStorage.setItem(`paroldle_${gameModeRef.current}_found_${index}`, JSON.stringify(found));
+      }
     }
     // eslint-disable-next-line
   }, [found, song]);
 
   useEffect(() => {
-    if (isReady && song && index !== null && gameMode !== "") {
-      localStorage.setItem(
-        `paroldle_${gameMode}_partial_${index}`,
-        JSON.stringify(partial)
-      );
+    if (isReady && song && index !== null && gameModeRef.current !== "") {
+      if (gameModeRef.current !== "battle") {
+        localStorage.setItem(
+          `paroldle_${gameMode}_partial_${index}`,
+          JSON.stringify(partial)
+        );
+      }
     }
     // eslint-disable-next-line
   }, [partial]);
@@ -105,14 +112,18 @@ const LyricsComponent = ({
 
 
   useEffect(() => {
-    if (isReady && song && index !== null && gameMode !== "") {
-      localStorage.setItem(`paroldle_${gameMode}_clues_${index}`, clues);
+    if (isReady && song && index !== null && gameModeRef.current !== "") {
+      if (gameModeRef.current !== "battle") {
+        localStorage.setItem(`paroldle_${gameMode}_clues_${index}`, clues);
+      }
     }
   }, [clues]);
 
   useEffect(() => {
-    if (isReady && song && index !== null && gameMode !== "") {
-      localStorage.setItem(`paroldle_${gameMode}_semanticPartial_${index}`, JSON.stringify(semanticPartial));
+    if (isReady && song && index !== null && gameModeRef.current !== "") {
+      if (gameModeRef.current !== "battle") {
+        localStorage.setItem(`paroldle_${gameMode}_semanticPartial_${index}`, JSON.stringify(semanticPartial));
+      }
     }
   }, [semanticPartial]);
 
@@ -167,6 +178,15 @@ const LyricsComponent = ({
       totalNewMatches += newResults[section].newFoundIndices.length;
       totalPartialMatches += Object.keys(newResults[section].newPartial).length + Object.keys(newResults[section].newSemanticPartial).length;
     });
+
+    if (gameModeRef.current === "battle" && battleStateRef.current === "fighting") {
+      const newExactResults = {
+        title: newResults.title.newFoundIndices,
+        lyrics: newResults.lyrics.newFoundIndices,
+        artist: newResults.artist.newFoundIndices,
+      };
+      sendToBattlePlayers(JSON.stringify({foundWords: newExactResults}));
+    }
 
     setFound((prev) => ({
       title: [...prev.title, ...newResults.title.newFoundIndices],
@@ -228,14 +248,13 @@ const LyricsComponent = ({
         setGameState("victory_hardcore");
       }
     } else if (gameMode === "battle") {
-      if (gameState === "guessing_battle") {
-        if (
-          title.length > 0 &&
-          found.title.length === title.length
-        ) {
-          setGameState("victory_battle");
-        }
+      if (
+        title.length > 0 &&
+        found.title.length === title.length
+      ) {
+        setGameState("victory_normal");
       }
+
     }
   }, [found.title, found.lyrics, found.artist, gameState, title.length, lyrics.length, artist.length, isReady]);
 
@@ -305,6 +324,10 @@ const LyricsComponent = ({
   const midLine = Math.ceil(lyricLines.length / 2);
   const leftColumn = lyricLines.slice(0, midLine);
   const rightColumn = lyricLines.slice(midLine);
+
+  useEffect(() => {
+    console.log("otherPlayersInfo", otherPlayersInfo);
+  }, [otherPlayersInfo]);
 
   if (index === null) {
     return (
@@ -438,6 +461,7 @@ const LyricsComponent = ({
               isCurrentGuess={currentFound.title.includes(i)}
               found={found.title.includes(i) || showAllSong || !gameState.startsWith("guessing")}
               partialMatch={showSemanticPartial ? (semanticPartial.title[i] || null) : partial.title[i] ? partial.title[i][0] : null}
+              otherPlayersFound={Object.keys(otherPlayersInfo).flatMap(player => otherPlayersInfo[player]?.foundWords?.title || []).includes(i)}
               fontSize="inherit"
             />
           ))}
@@ -446,7 +470,7 @@ const LyricsComponent = ({
 
       <Box mb={4} textAlign="center">
         <Heading as={"h2"} fontSize="2xl">
-          {artist.map((word, i) => (
+          {artist.map((word, i) => 
             <LyricWords
               key={`artist-${i}`}
               prevWord={artist[i - 1]}
@@ -454,9 +478,10 @@ const LyricsComponent = ({
               isCurrentGuess={currentFound.artist.includes(i)}
               found={found.artist.includes(i) || showAllSong || !gameState.startsWith("guessing")}
               partialMatch={showSemanticPartial ? (semanticPartial.artist[i] || null) : partial.artist[i] ? partial.artist[i][0] : null}
+              otherPlayersFound={Object.keys(otherPlayersInfo).flatMap(player => otherPlayersInfo[player]?.foundWords?.artist || []).includes(i)}
               fontSize="inherit"
             />
-          ))}
+          )}
         </Heading>
       </Box>
 
@@ -497,6 +522,7 @@ const LyricsComponent = ({
                   isCurrentGuess={currentFound.lyrics.includes(item.index)}
                   found={found.lyrics.includes(item.index) || showAllSong}
                   partialMatch={showSemanticPartial ? (semanticPartial.lyrics[item.index] || null) : partial.lyrics[item.index] ? partial.lyrics[item.index][0] : null}
+                  otherPlayersFound={Object.keys(otherPlayersInfo).flatMap(player => otherPlayersInfo[player]?.foundWords?.lyrics || []).includes(item.index)}
                 />
               ))}
               <br />
@@ -515,6 +541,7 @@ const LyricsComponent = ({
                   isCurrentGuess={currentFound.lyrics.includes(item.index)}
                   found={found.lyrics.includes(item.index) || showAllSong}
                   partialMatch={showSemanticPartial ? (semanticPartial.lyrics[item.index] || null) : partial.lyrics[item.index] ? partial.lyrics[item.index][0] : null}
+                  otherPlayersFound={Object.keys(otherPlayersInfo).flatMap(player => otherPlayersInfo[player]?.foundWords?.lyrics || []).includes(item.index)}
                 />
               ))}
               <br />
@@ -527,7 +554,7 @@ const LyricsComponent = ({
 };
 
 const LyricWords = memo(
-  ({ prevWord, word, isCurrentGuess, found, partialMatch, fontSize }) => {
+  ({ prevWord, word, isCurrentGuess, found, partialMatch, fontSize, otherPlayersFound }) => {
     const [showWordLength, setShowWordLength] = useState(false);
     const colors = useColors();
 
@@ -545,9 +572,9 @@ const LyricWords = memo(
     };
 
     if (found) {
-      return isCurrentGuess ? (
+      return isCurrentGuess || otherPlayersFound ? (
         <Box
-          backgroundColor={colors.correctGuessBg}
+          backgroundColor={isCurrentGuess ? colors.correctGuessBg: colors.otherPlayersGuessBg}
           display="inline-block"
           pl={1}
           pr={1}
@@ -571,7 +598,7 @@ const LyricWords = memo(
     return (
       <Box
         ml={marginLeft}
-        backgroundColor={colors.maskedWordBg}
+        backgroundColor={otherPlayersFound ? colors.otherPlayersGuessBg : colors.maskedWordBg}
         display="inline-block"
         cursor="pointer"
         position="relative"
@@ -579,7 +606,7 @@ const LyricWords = memo(
         textAlign="center"
         borderRadius="md"
         transform="translateY(3px)"
-        width={partialMatch ? `${Math.max(partialMatch.length, word.length) - 0.2* Math.max(partialMatch.length, word.length)}ch` : `${word.length - 0.2 * word.length}ch`}
+        width={partialMatch ? `${Math.max(partialMatch.length + 1, word.length) - 0.2 * Math.max(partialMatch.length + 1, word.length)}ch` : `${word.length - 0.2 * word.length}ch`}
         height="1.5ch"
       >
         {showWordLength && (
@@ -598,13 +625,13 @@ const LyricWords = memo(
         )}
         {!showWordLength && partialMatch && (
           <Text
-            color={colors.partialGuess}
             position="absolute"
             top="50%"
             left="50%"
             transform="translate(-50%, -52%)"
             fontSize="sm"
             fontFamily="inherit"
+            color={otherPlayersFound ? colors.partialOnOtherPlayersGuess : colors.partialGuessOnNormal}
           >
             {partialMatch}
           </Text>

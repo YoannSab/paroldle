@@ -71,10 +71,14 @@ const App = () => {
   const [sendToPlayers, setSendToPlayers] = useState(null);
 
   const [battleState, setBattleState] = useState("waiting");
+  const battleStateRef = useRef(battleState);
   const [battleStartTime, setBattleStartTime] = useState(null);
   const [fightIndex, setFightIndex] = useState(null);
   const [wantsTie, setWantsTie] = useState(false);
   const [tieRequestOpen, setTieRequestOpen] = useState(false);
+  const storedProfilPicture = localStorage.getItem('paroldle_profilePicture');
+  const [selectedImage, setSelectedImage] = useState(storedProfilPicture || 'pdp1');
+
 
   // Définir la langue en fonction du navigateur
   useEffect(() => {
@@ -103,6 +107,7 @@ const App = () => {
   // Synchronisation des données en fonction du gameMode
   useEffect(() => {
     if (gameMode === "") return;
+    setIsReady(false);
     localStorage.setItem('paroldle_gameMode', gameMode);
 
     const storedFoundSongs = localStorage.getItem(`paroldle_${gameMode}_foundSongs`);
@@ -110,12 +115,10 @@ const App = () => {
 
     if (gameMode === "battle") {
       setIndex(null);
-      setGameState("guessing_battle");
-      
+      setGameState("guessing_normal");
+
     }
     else {
-      setIsReady(false);
-
       const storedInProgressSongs = localStorage.getItem(`paroldle_${gameMode}_inProgressSongs`);
       setInProgressSongs(storedInProgressSongs ? JSON.parse(storedInProgressSongs) : []);
 
@@ -144,7 +147,7 @@ const App = () => {
     const storedGuessList = localStorage.getItem(`paroldle_${gameModeRef.current}_guessList_${index}`);
     setGuessList(storedGuessList ? JSON.parse(storedGuessList) : []);
     const storedGameState = localStorage.getItem(`paroldle_${gameModeRef.current}_gameState_${index}`);
-    setGameState(storedGameState || (gameModeRef.current === "NOPLP" ? "guessing_hardcore" : gameModeRef.current === "battle" ? "guessing_battle" : "guessing_normal"));
+    setGameState(storedGameState || (gameModeRef.current === "NOPLP" ? "guessing_hardcore" : "guessing_normal"));
     setShowAllSong(false);
 
     setGuess('');
@@ -225,20 +228,20 @@ const App = () => {
           return { ...prev, [indexRef.current]: "hardcore" };
         }
       } else if (gameModeRef.current === "battle") {
-        if (gameState === "victory_battle" && !Object.hasOwn(prev, indexRef.current)) {
+        if (gameState === "victory_normal" && !Object.hasOwn(prev, indexRef.current)) {
           setShowVictory(true);
           setTrophies((prevTrophies) => prevTrophies + NORMAL_VICTORY_BASE_POINTS);
-          return { ...prev, [indexRef.current]: {status: "victory", winner: playerName, players: [playerName, ...Object.keys(otherPlayersInfo).filter((player) => otherPlayersInfo[player].battleState === "fighting")]} };
+          return { ...prev, [indexRef.current]: { status: "victory", winner: playerName, players: [playerName, ...Object.keys(otherPlayersInfo).filter((player) => otherPlayersInfo[player].battleState === "fighting")] } };
         }
-        else if (gameState.startsWith("defeat_battle") && !Object.hasOwn(prev, indexRef.current)) {
+        else if (gameState.startsWith("defeat_normal") && !Object.hasOwn(prev, indexRef.current)) {
           setShowVictory(true);
-          setTrophies((prevTrophies) => Math.max(0, prevTrophies - NORMAL_VICTORY_BASE_POINTS));
+          // setTrophies((prevTrophies) => Math.max(0, prevTrophies - NORMAL_VICTORY_BASE_POINTS));
           const winner = gameState.split("_")[2];
-          return { ...prev, [indexRef.current]: {status: "defeat", winner: winner, players: [playerName, ...Object.keys(otherPlayersInfo).filter((player) => otherPlayersInfo[player].battleState === "fighting")]} };
+          return { ...prev, [indexRef.current]: { status: "defeat", winner: winner, players: [playerName, ...Object.keys(otherPlayersInfo).filter((player) => otherPlayersInfo[player].battleState === "fighting")] } };
         }
-        else if (gameState === "tie_battle" && !Object.hasOwn(prev, indexRef.current)) {
+        else if (gameState === "tie_normal" && !Object.hasOwn(prev, indexRef.current)) {
           setShowVictory(true);
-          return { ...prev, [indexRef.current]: {status: "tie", players: [playerName, ...Object.keys(otherPlayersInfo).filter((player) => otherPlayersInfo[player].battleState === "fighting")]} };
+          return { ...prev, [indexRef.current]: { status: "tie", players: [playerName, ...Object.keys(otherPlayersInfo).filter((player) => otherPlayersInfo[player].battleState === "fighting")] } };
         }
       }
       return prev;
@@ -276,7 +279,7 @@ const App = () => {
         if (gameModeRef.current === "NOPLP") {
           setGameState("victory_hardcore");
         } else if (gameModeRef.current === "battle") {
-          setGameState("victory_battle");
+          setGameState("victory_normal");
         } else {
           setGameState("victory_normal");
         }
@@ -297,7 +300,7 @@ const App = () => {
             setLastWord(part);
             setMyGuess(part);
 
-            if (isConnected) {
+            if (isConnected && gameModeRef.current !== "battle" && sendToPlayers) {
               sendToPlayers(JSON.stringify({ guess: part, index: indexRef.current }));
             }
           }, 0);
@@ -331,6 +334,14 @@ const App = () => {
     setOtherPlayersInfo({});
   }, []);
 
+  const sendToBattlePlayers = useCallback((data) => {
+    Object.keys(otherPlayersInfo).forEach(player => {
+      if ((otherPlayersInfo[player].battleState === "ready" || otherPlayersInfo[player].battleState === "fighting") && otherPlayersInfo[player].sendFunc) {
+        otherPlayersInfo[player].sendFunc(data);
+      }
+    });
+  }, [otherPlayersInfo]);
+
   const handleRtcMessage = useCallback((data) => {
     if (isConnectedRef.current && data.type === "game_data") {
       const sender = data.sender;
@@ -344,13 +355,32 @@ const App = () => {
       else if (jsonData.songResult) {
         if (data.gameMode === gameModeRef.current) {
           if (jsonData.songResult === "victory") {
-            setGameState("defeat_battle_" + sender);
+            setGameState("defeat_normal_" + sender);
           }
         }
       }
       else if (jsonData.wantsTie) {
         if (data.gameMode === gameModeRef.current && !wantsTie) {
           setTieRequestOpen(true);
+        }
+      }
+      else if (jsonData.foundWords) {
+        if (data.gameMode === gameModeRef.current) {
+          setOtherPlayersInfo((prev) => {
+            if (Object.hasOwn(prev, sender)) {
+              return {
+                ...prev, [sender]: {
+                  ...prev[sender], foundWords:
+                  {
+                    title: [...(prev[sender].foundWords?.title || []), ...(jsonData.foundWords.title || [])],
+                    artist: [...(prev[sender].foundWords?.artist || []), ...(jsonData.foundWords.artist || [])],
+                    lyrics: [...(prev[sender].foundWords?.lyrics || []), ...(jsonData.foundWords.lyrics || [])]
+                  }
+                }
+              };
+            }
+            return prev;
+          });
         }
       }
       else if (jsonData.guess) {
@@ -391,7 +421,7 @@ const App = () => {
       if (allPlayers.length !== 0) {
         const allWantTie = allPlayers.every((player) => otherPlayersInfo[player]?.wantsTie === true);
         if (allWantTie) {
-          setGameState("tie_battle");
+          setGameState("tie_normal");
         }
       }
     }
@@ -439,6 +469,11 @@ const App = () => {
   }
     , [gameMode]);
 
+  useEffect(() => {
+    battleStateRef.current = battleState;
+  }
+    , [battleState]);
+
   return (
     <>
       <TieRequestDialog
@@ -468,6 +503,8 @@ const App = () => {
         setIsConnected={setIsConnected}
         roomId={roomId}
         setRoomId={setRoomId}
+        selectedImage={selectedImage}
+        setSelectedImage={setSelectedImage}
       />
       <FestiveModal isOpen={showVictory} onClose={() => setShowVictory(false)} state={gameState} />
       <HardcorePromptModal
@@ -503,6 +540,7 @@ const App = () => {
               isConnected={isConnected}
               roomPlayers={roomPlayers}
               otherPlayersInfo={otherPlayersInfo}
+              setOtherPlayersInfo={setOtherPlayersInfo}
               setRtcModalOpen={setRtcModalOpen}
               playerName={playerName}
               sendGuessListCallback={handleSendGuessList}
@@ -517,6 +555,7 @@ const App = () => {
               gameState={gameState}
               setWantsTie={setWantsTie}
               roomId={roomId}
+              selectedImage={selectedImage}
 
             />
           </GridItem>
@@ -559,7 +598,7 @@ const App = () => {
                   >
                     {t("Try")}
                   </Button>
-                  {((gameState === "guessing_normal" || gameState === "guessing_hardcore") && gameMode !== "NOPLP") && (
+                  {((gameState.startsWith('guessing')) && gameMode === "classic") && (
                     <Button
                       bgColor={colors.orangeButtonBg}
                       _hover={{ bgColor: colors.orangeButtonBgHover }}
@@ -568,7 +607,7 @@ const App = () => {
                       {t("Give up")} {gameState === "guessing_hardcore" ? " " + t("Hardcore") : ""}
                     </Button>
                   )}
-                  {gameState === "victory_normal" && (
+                  {gameState === "victory_normal" && gameMode === "classic" && (
                     <Button
                       bgColor={colors.blueButtonBg}
                       onClick={() => setShowHardcorePrompt(true)}
@@ -585,7 +624,7 @@ const App = () => {
                         : '🟥'}
                     </Text>
                   )}
-                  {!gameState.startsWith("guessing") && gameState && 
+                  {!gameState.startsWith("guessing") && gameState &&
                     (showAllSong ? (
                       <ViewOffIcon boxSize={7} onClick={handleClickShowSong} cursor="pointer" />
                     ) : (
@@ -611,6 +650,9 @@ const App = () => {
                   autoplay={autoplay}
                   trophies={trophies}
                   setTrophies={setTrophies}
+                  sendToBattlePlayers={sendToBattlePlayers}
+                  otherPlayersInfo={otherPlayersInfo}
+                  battleStateRef={battleStateRef}
                 />
               </Box>
             </Box>

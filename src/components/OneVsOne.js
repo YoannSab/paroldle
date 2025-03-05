@@ -62,6 +62,7 @@ const OneVsOne = ({
     gameState,
     foundSongs,
     setWantsTie,
+    setOtherPlayersInfo,
 }) => {
     const colors = useColors();
     const { t } = useTranslation();
@@ -117,28 +118,31 @@ const OneVsOne = ({
         if (allPlayersSet && !combatStarted) {
 
             // Déterminer le premier joueur par ordre lexicographique
-            const sortedPlayers = [...roomPlayers].sort((a, b) => a.localeCompare(b));
+            const sortedPlayers = [...roomPlayers].filter((player) => player === playerName ? battleState === "ready" :
+                                                    otherPlayersInfo[player].battleState === "ready")
+                                                    .sort((a, b) => a.localeCompare(b));
+                                                    
             const isSelector = sortedPlayers[0] === playerName;
             if (isSelector && fightIndex === null) {
                 // Le sélecteur choisit l'index aléatoire
                 setIsRolling(true); // Démarre l'animation de dés
-                setTimeout(() => {
-                    const randomSong = filteredSongs[Math.floor(Math.random() * filteredSongs.length)];
-                    const randomIndex = randomSong ? randomSong.index : null;
-                    if (isNaN(randomIndex)) return;
-                    setFightIndex(randomIndex);
-                    const startTime = Date.now() + 5000; // démarrage prévu dans 5s
-                    // Envoyer l'index et l'heure de démarrage aux autres joueurs
-                    sendToPlayers(JSON.stringify({ songIndex: randomIndex, startTime }));
-                    setBattleStartTime(startTime);
-                    setCountdown(Math.ceil((startTime - Date.now()) / 1000));
-                    setIsRolling(false); // Arrête l'animation de dés
-                }, 2500); // Durée de l'animation de dés
+                // setTimeout(() => {
+                const randomSong = filteredSongs[Math.floor(Math.random() * filteredSongs.length)];
+                const randomIndex = randomSong ? randomSong.index : null;
+                if (isNaN(randomIndex)) return;
+                setFightIndex(randomIndex);
+                const startTime = Date.now() + 5000; // démarrage prévu dans 5s
+                // Envoyer l'index et l'heure de démarrage aux autres joueurs
+                sendToPlayers(JSON.stringify({ songIndex: randomIndex, startTime }));
+                setBattleStartTime(startTime);
+                setCountdown(Math.ceil((startTime - Date.now()) / 1000));
+                setIsRolling(false); // Arrête l'animation de dés
+                // }, 2500); // Durée de l'animation de dés
             } else if (!isSelector && fightIndex !== null && battleStartTime) {
                 // Les autres joueurs ont reçu l'index via RTC
                 setCountdown(Math.ceil((battleStartTime - Date.now()) / 1000));
             }
-        } 
+        }
     }, [battleState, otherPlayersInfo, roomPlayers, fightIndex, battleStartTime]);
 
     // Décompte avant le lancement du combat
@@ -158,6 +162,15 @@ const OneVsOne = ({
 
     // Démarrer le combat
     const startCombat = () => {
+        // delete foundWords from otherPlayersInfo
+        const newOtherPlayersInfo = { ...otherPlayersInfo };
+        Object.keys(newOtherPlayersInfo).forEach(player => {
+            if (newOtherPlayersInfo[player].foundWords) {
+                delete newOtherPlayersInfo[player].foundWords;
+            }
+        });
+        setOtherPlayersInfo(newOtherPlayersInfo);
+
         setBattleState("fighting");
         setCombatStarted(true);
         setCountdown(null);
@@ -177,6 +190,7 @@ const OneVsOne = ({
     }, [combatStarted]);
 
     const handleEndGame = (status) => {
+
         setBattleState(status);
         setCombatStarted(false);
         setCombatTimer(0);
@@ -225,16 +239,16 @@ const OneVsOne = ({
                         <Text textAlign="center" fontSize="lg" fontWeight={"bold"}>
                             {t("The first to find the song title wins trophies.")}
                         </Text>
-                        { filteredSongs.length === 0 ? (
+                        {filteredSongs.length === 0 ? (
                             <Text textAlign="center" fontSize="lg" fontWeight={"bold"}>
                                 {t("Uncheck some filters to get more songs!")}
                             </Text>
                         ) : (
-                        <Text textAlign="center" fontSize="lg" fontWeight={"bold"}>
-                            {t("Random choice among")} <Text as="span" color="yellow.400">{filteredSongs.length}</Text> {t("songs")}!
-                        </Text>
+                            <Text textAlign="center" fontSize="lg" fontWeight={"bold"}>
+                                {t("Random choice among")} <Text as="span" color="yellow.400">{filteredSongs.length}</Text> {t("songs")}!
+                            </Text>
                         )}
-                        {isRolling && (
+                        {/* {isRolling && (
                             <Image
                                 mt={-50}
                                 src="https://media.tenor.com/siAgcqv9oSYAAAAi/roll-1.gif"
@@ -242,7 +256,7 @@ const OneVsOne = ({
                                 width={100}
                                 height={100}
                             />
-                        )}
+                        )} */}
                         <HStack spacing={4}>
                             <Button
                                 colorScheme="red"
@@ -279,7 +293,7 @@ const OneVsOne = ({
                             onClick={handleAskForTie}
                             isDisabled={battleState === "tie" || isTieButtonDisabled}
                             leftIcon={<FaHandshake />}
-                            _hover={{ transform: (battleState === "tie" || isTieButtonDisabled) ? "none" :"scale(1.05)"}}
+                            _hover={{ transform: (battleState === "tie" || isTieButtonDisabled) ? "none" : "scale(1.05)" }}
                         >
                             {t("Ask for a tie")}
                         </Button>

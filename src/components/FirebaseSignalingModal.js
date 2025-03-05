@@ -17,12 +17,13 @@ import {
   AlertIcon,
   Box,
 } from '@chakra-ui/react';
-import { ref, set, get, onChildAdded, onChildChanged, onChildRemoved, remove, onValue } from "firebase/database";
+import { ref, set, get, onChildAdded, onChildChanged, onChildRemoved, remove, onValue, update} from "firebase/database";
 import { database } from '../firebase';
 import { useToast } from "@chakra-ui/react";
 import Peer from 'peerjs';
 import { useTranslation } from 'react-i18next';
 import useColors from '../hooks/useColors';
+import ProfilePictureModal from './ProfilePictureModal';
 
 const FirebaseSignalingModal = ({
   isOpen,
@@ -42,6 +43,8 @@ const FirebaseSignalingModal = ({
   setIsConnected,
   roomId,
   setRoomId,
+  selectedImage,
+  setSelectedImage,
 }) => {
   const [roomInput, setRoomInput] = useState('');
   const [playerNameInput, setPlayerNameInput] = useState('');
@@ -50,9 +53,21 @@ const FirebaseSignalingModal = ({
   const [error, setError] = useState('');
   const toast = useToast();
   const { t } = useTranslation();
+  
 
   // Nouvel état pour stocker la liste des salles ouvertes
   const [openRooms, setOpenRooms] = useState([]);
+
+  useEffect(() => {
+    localStorage.setItem('paroldle_profilePicture', selectedImage);
+
+    if (isConnected && roomId && playerName) {
+      update(ref(database, `rooms/${roomId}/players/${playerName}`), {
+        profilePicture: selectedImage,
+      });
+    }
+  }, [selectedImage, isConnected, roomId, playerName]);
+
 
   // Mise à jour automatique des salles ouvertes à partir de Firebase
   useEffect(() => {
@@ -80,7 +95,7 @@ const FirebaseSignalingModal = ({
   useEffect(() => {
     if (!gameMode || !song) return;
     if (roomId && playerName && myPeerId) {
-      set(ref(database, `rooms/${roomId}/players/${playerName}`), {
+      update(ref(database, `rooms/${roomId}/players/${playerName}`), {
         name: playerName,
         peerId: myPeerId,
         gameMode: gameMode || null,
@@ -162,7 +177,7 @@ const FirebaseSignalingModal = ({
       if (conn.remoteName) {
         console.log(`Updating otherPlayersInfo for ${conn.remoteName}`);
         setOtherPlayersInfo(prev => ({
-          ...prev, 
+          ...prev,
           [conn.remoteName]: {
             ...(prev[conn.remoteName] || {}),
             sendFunc: (msg) => {
@@ -242,6 +257,7 @@ const FirebaseSignalingModal = ({
                   name: remoteName,
                   gameMode: remoteData.gameMode,
                   song: remoteData.song,
+                  profilePicture: remoteData.profilePicture || "pdp1",
                 }
               };
               return newInfo;
@@ -265,6 +281,7 @@ const FirebaseSignalingModal = ({
               name: remoteName,
               gameMode: remoteData.gameMode,
               song: remoteData.song,
+              profilePicture: remoteData.profilePicture || "pdp1",
             }
           };
           return newInfo;
@@ -304,7 +321,8 @@ const FirebaseSignalingModal = ({
             gameMode: remoteData.gameMode,
             song: remoteData.song,
             battleState: remoteData.battleState || prev[remoteName]?.battleState || "waiting",
-            wantsTie : remoteData.wantsTie || false,
+            wantsTie: remoteData.wantsTie || false,
+            profilePicture: remoteData.profilePicture || "pdp1",
           }
         }));
       }
@@ -411,34 +429,40 @@ const FirebaseSignalingModal = ({
               )}
             </Box>
             {/* Entrées pour rejoindre une salle */}
-            <Input
-              placeholder={t("Room ID")}
-              value={roomInput}
-              onChange={(e) => setRoomInput(e.target.value)}
-              variant="filled"
-              size="lg"
-              focusBorderColor="teal.500"
-              // on press enter, join the room
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && roomInput && playerNameInput) {
-                  joinRoom();
-                }
-              }}
-            />
-            <Input
-              placeholder={t("Your name")}
-              value={playerNameInput}
-              onChange={(e) => setPlayerNameInput(e.target.value)}
-              variant="filled"
-              size="lg"
-              focusBorderColor="teal.500"
-              // on press enter, join the room
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && roomInput && playerNameInput) {
-                  joinRoom();
-                }
-              }}
-            />
+            <HStack spacing={4} align="stretch">
+              <VStack spacing={4}>
+                <Input
+                  placeholder={t("Room ID")}
+                  value={roomInput}
+                  onChange={(e) => setRoomInput(e.target.value)}
+                  variant="filled"
+                  size="lg"
+                  focusBorderColor="teal.500"
+                  // on press enter, join the room
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && roomInput && playerNameInput) {
+                      joinRoom();
+                    }
+                  }}
+                />
+                <Input
+                  placeholder={t("Your name")}
+                  value={playerNameInput}
+                  onChange={(e) => setPlayerNameInput(e.target.value)}
+                  variant="filled"
+                  size="lg"
+                  focusBorderColor="teal.500"
+                  // on press enter, join the room
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && roomInput && playerNameInput) {
+                      joinRoom();
+                    }
+                  }}
+                />
+              </VStack>
+              
+              <ProfilePictureModal selectedImage={selectedImage} setSelectedImage={setSelectedImage} />
+            </HStack>
             {error && (
               <Alert status="error" borderRadius="md">
                 <AlertIcon />

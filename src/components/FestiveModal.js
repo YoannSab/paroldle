@@ -57,7 +57,7 @@ const FestiveModal = ({ isOpen, onClose, state }) => {
                         </ModalBody>
                     </ModalContent>
 
-                ) : state === 'tie_battle' ? (
+                ) : state.startsWith('tie') ? (
                     // MODAL POUR L'ÉGALITÉ
                     <ModalContent bgGradient="linear(to-r, gray.500, yellow.400)" color="white" boxShadow="xl">
                         <ModalHeader textAlign="center">

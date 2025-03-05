@@ -43,6 +43,7 @@ const Sidebar = ({
   isConnected,
   roomPlayers,
   otherPlayersInfo,
+  setOtherPlayersInfo,
   setRtcModalOpen,
   playerName,
   sendGuessListCallback,
@@ -57,6 +58,7 @@ const Sidebar = ({
   gameState,
   setWantsTie,
   roomId,
+  selectedImage,
 }) => {
   const colors = useColors();
   const { t } = useTranslation();
@@ -271,6 +273,11 @@ const Sidebar = ({
   }, [activeTab, setGameMode]);
 
 
+  const sortedPlayers = [...roomPlayers].filter((player) => player === playerName ? battleState !== "not_participating" :
+    otherPlayersInfo[player].battleState !== "not_participating")
+    .sort((a, b) => a.localeCompare(b));
+  const isSelector = sortedPlayers[0] === playerName;
+
   return (
     <Box maxW="400px" mx="auto" h="100%">
       {/* Partie supérieure commune (GuessList, titre, etc.) */}
@@ -379,6 +386,7 @@ const Sidebar = ({
               foundSongs={foundSongs}
               battleState={battleState}
               roomId={roomId}
+              selectedImage={selectedImage}
             />
           )}
           {/* Contenu des onglets */}
@@ -439,42 +447,43 @@ const Sidebar = ({
                   <Loading />
                 ) : (
                   <>
-                  <OneVsOne
-                    filteredSongs={filteredFlat}
-                    allSongs={allSongs}
-                    setIndex={setIndex}
-                    playerName={playerName}
-                    roomPlayers={roomPlayers}
-                    otherPlayersInfo={otherPlayersInfo}
-                    isConnected={isConnected}
-                    battleState={battleState}
-                    setBattleState={setBattleState}
-                    battleStartTime={battleStartTime}
-                    setBattleStartTime={setBattleStartTime}
-                    setFightIndex={setFightIndex}
-                    fightIndex={fightIndex}
-                    foundSongs={foundSongs}
-                    gameState={gameState}
-                    setWantsTie={setWantsTie} />
-
-                    <Filters
-                      gameMode={gameMode}
-                      availableLanguages={availableLanguages}
-                      availableDecades={availableDecades}
-                      availableStyles={availableStyles}
-                      selectedLanguages={selectedLanguages}
-                      setSelectedLanguages={setSelectedLanguages}
-                      selectedDecades={selectedDecades}
-                      setSelectedDecades={setSelectedDecades}
-                      selectedStyles={selectedStyles}
-                      setSelectedStyles={setSelectedStyles}
-                      filterAvailable={filterAvailable}
-                      setFilterAvailable={setFilterAvailable}
-                      selectedStatuses={selectedStatuses}
-                      setSelectedStatuses={setSelectedStatuses} />
-                    </>
+                    <OneVsOne
+                      filteredSongs={filteredFlat}
+                      allSongs={allSongs}
+                      setIndex={setIndex}
+                      playerName={playerName}
+                      roomPlayers={roomPlayers}
+                      otherPlayersInfo={otherPlayersInfo}
+                      setOtherPlayersInfo={setOtherPlayersInfo}
+                      isConnected={isConnected}
+                      battleState={battleState}
+                      setBattleState={setBattleState}
+                      battleStartTime={battleStartTime}
+                      setBattleStartTime={setBattleStartTime}
+                      setFightIndex={setFightIndex}
+                      fightIndex={fightIndex}
+                      foundSongs={foundSongs}
+                      gameState={gameState}
+                      setWantsTie={setWantsTie} />
+                    {isSelector && (
+                      <Filters
+                        gameMode={gameMode}
+                        availableLanguages={availableLanguages}
+                        availableDecades={availableDecades}
+                        availableStyles={availableStyles}
+                        selectedLanguages={selectedLanguages}
+                        setSelectedLanguages={setSelectedLanguages}
+                        selectedDecades={selectedDecades}
+                        setSelectedDecades={setSelectedDecades}
+                        selectedStyles={selectedStyles}
+                        setSelectedStyles={setSelectedStyles}
+                        filterAvailable={filterAvailable}
+                        setFilterAvailable={setFilterAvailable}
+                        selectedStatuses={selectedStatuses}
+                        setSelectedStatuses={setSelectedStatuses} />
+                    )}
+                  </>
                 )
-                
               }
             </TabPanel>
           </TabPanels>
