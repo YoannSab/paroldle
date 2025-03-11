@@ -10400,7 +10400,8 @@
             "Lana Del Rey"
         ],
         "birth_date": "1994",
-        "type": "Person"
+        "type": "Person",
+        "country": "GB"
     },
     "Maneskin": {
         "albums": [
