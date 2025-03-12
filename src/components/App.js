@@ -28,6 +28,8 @@ import FirebaseSignalingModal from './FirebaseSignalingModal';
 import { ref, update } from 'firebase/database';
 import { database } from '../firebase';
 import TieRequestDialog from './TieRequestDialog';
+import DailyQuiz from './DailyQuiz';
+import { generateDateBasedIndex } from '../generate_quiz';
 
 const App = () => {
   const { t, i18n } = useTranslation();
@@ -48,7 +50,7 @@ const App = () => {
   const [foundSongs, setFoundSongs] = useState({});
   const [autoplay, setAutoplay] = useState(false);
   const [gameState, setGameState] = useState("");
-  const [gameMode, setGameMode] = useState(""); // classic, NOPLP, battle
+  const [gameMode, setGameMode] = useState(""); // daily, classic, NOPLP, battle
   const [showHardcorePrompt, setShowHardcorePrompt] = useState(false);
   const [trophies, setTrophies] = useState(0);
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -79,6 +81,45 @@ const App = () => {
   const storedProfilPicture = localStorage.getItem('paroldle_profilePicture');
   const [selectedImage, setSelectedImage] = useState(storedProfilPicture || 'pdp1');
 
+  const [dailyIndex, setDailyIndex] = useState(null);
+  const [dailyScores, setDailyScores] = useState({});
+  const [dailySongOrQuiz, setDailySongOrQuiz] = useState("song");
+  const [dailyTotalPoints, setDailyTotalPoints] = useState(0);
+
+  localStorage.removeItem("paroldle_activeTab");
+
+  useEffect(() => {
+    const fetchDailyIndex = async () => {
+      const today = new Date();
+      const todayString = today.toISOString().split('T')[0];
+      const storedDailyIndex = localStorage.getItem(`paroldle_daily_index_${todayString}`);
+      if (storedDailyIndex) {
+        setDailyIndex(parseInt(storedDailyIndex, 10));
+        if (gameModeRef.current === "daily") {
+          setIndex(parseInt(storedDailyIndex, 10));
+        }
+      }
+      else {
+        const index = await generateDateBasedIndex();
+        setDailyIndex(index);
+        setDailySongOrQuiz("song");
+        localStorage.setItem(`paroldle_daily_index_${todayString}`, index);
+        if (gameModeRef.current === "daily") {
+          setIndex(index);
+        }
+      }
+    };
+    fetchDailyIndex();
+  }, []);
+
+  useEffect(() => {
+    if (dailyIndex === null) return;
+    const todayString = new Date().toISOString().split('T')[0];
+    Object.keys(localStorage).filter((key) => key.startsWith('paroldle_daily') && !(key.endsWith(todayString) || key.endsWith(dailyIndex)) && !key.endsWith("scores")).forEach((key) => {
+      console.log("Removing key", key);
+      localStorage.removeItem(key);
+    });
+  }, [dailyIndex]);
 
   // Définir la langue en fonction du navigateur
   useEffect(() => {
@@ -102,6 +143,11 @@ const App = () => {
     if (storedTrophies) {
       setTrophies(parseInt(storedTrophies, 10));
     }
+
+    const storedDailyScores = localStorage.getItem('paroldle_daily_scores');
+    if (storedDailyScores) {
+      setDailyScores(JSON.parse(storedDailyScores));
+    }
   }, []);
 
   // Synchronisation des données en fonction du gameMode
@@ -110,15 +156,14 @@ const App = () => {
     setIsReady(false);
     localStorage.setItem('paroldle_gameMode', gameMode);
 
-    const storedFoundSongs = localStorage.getItem(`paroldle_${gameMode}_foundSongs`);
-    setFoundSongs(storedFoundSongs ? JSON.parse(storedFoundSongs) : {});
+    const storedFoundSongs = localStorage.getItem(`paroldle_${gameMode}_foundSongs`) || "{}";
+    setFoundSongs(storedFoundSongs ? JSON.parse(storedFoundSongs ?? '{}') : {});
 
     if (gameMode === "battle") {
       setIndex(null);
       setGameState("guessing_normal");
-
     }
-    else {
+    else if (gameMode !== "daily") {
       const storedInProgressSongs = localStorage.getItem(`paroldle_${gameMode}_inProgressSongs`);
       setInProgressSongs(storedInProgressSongs ? JSON.parse(storedInProgressSongs) : []);
 
@@ -126,15 +171,23 @@ const App = () => {
       if (storedIndex && !isNaN(parseInt(storedIndex))) {
         const i = parseInt(storedIndex);
         setIndex(i);
-        const storedGuessList = localStorage.getItem(`paroldle_${gameMode}_guessList_${storedIndex}`);
-        setGuessList(storedGuessList ? JSON.parse(storedGuessList) : []);
-        const storedGameState = localStorage.getItem(`paroldle_${gameMode}_gameState_${storedIndex}`);
-        setGameState(storedGameState || (gameMode === "NOPLP" ? "guessing_hardcore" : "guessing_normal"));
+        // const storedGuessList = localStorage.getItem(`paroldle_${gameMode}_guessList_${storedIndex}`);
+        // setGuessList(storedGuessList ? JSON.parse(storedGuessList) : []);
+        // const storedGameState = localStorage.getItem(`paroldle_${gameMode}_gameState_${storedIndex}`);
+        // setGameState(storedGameState || (gameMode === "NOPLP" ? "guessing_hardcore" : "guessing_normal"));
       } else {
         setIndex(null);
         setGameState("");
         setGuessList([]);
       }
+    }
+    else if (gameMode === "daily") {
+      setIndex(dailyIndex);
+      const storedDailySongOrQuiz = localStorage.getItem(`paroldle_daily_songOrQuiz`);
+      setDailySongOrQuiz(storedDailySongOrQuiz || "song");
+      const todayString = new Date().toISOString().split('T')[0];
+      const storedTotalPoints = localStorage.getItem(`paroldle_daily_total_points_${todayString}`);
+      setDailyTotalPoints(storedTotalPoints ? parseInt(storedTotalPoints, 10) : 0);
     }
     setIsReady(true);
     setSideBarLoading(false);
@@ -166,17 +219,35 @@ const App = () => {
   }, [index]);
 
   useEffect(() => {
-    if (indexRef.current == null || gameModeRef.current === "") return;
+    if (gameMode === "daily") {
+      const todayString = new Date().toISOString().split('T')[0];
+      localStorage.setItem(`paroldle_daily_total_points_${todayString}`, dailyTotalPoints);
+    }
+  }, [dailyTotalPoints]);
+
+  useEffect(() => {
+    localStorage.setItem(`paroldle_daily_songOrQuiz`, dailySongOrQuiz);
+  }, [dailySongOrQuiz]);
+
+  useEffect(() => {
+    localStorage.setItem("paroldle_daily_scores", JSON.stringify(dailyScores));
+  }, [dailyScores]);
+
+  useEffect(() => {
+    if (indexRef.current === null || gameModeRef.current === "") return;
+    // const todayString = new Date().toISOString().split('T')[0];
+    // const end = gameModeRef.current === "daily" ? todayString : indexRef.current;
     localStorage.setItem(`paroldle_${gameMode}_guessList_${indexRef.current}`, JSON.stringify(guessList));
   }, [guessList]);
 
   useEffect(() => {
-    if (gameModeRef.current === "") return;
+    if (gameModeRef.current === "" || gameMode === "daily") return;
     localStorage.setItem(`paroldle_${gameModeRef.current}_foundSongs`, JSON.stringify(foundSongs));
+
   }, [foundSongs]);
 
   useEffect(() => {
-    if (gameModeRef.current === "") return;
+    if (gameModeRef.current === "" || gameMode === "daily") return;
     localStorage.setItem(`paroldle_${gameModeRef.current}_inProgressSongs`, JSON.stringify(inProgressSongs));
   }, [inProgressSongs]);
 
@@ -189,7 +260,9 @@ const App = () => {
   }, [trophies]);
 
   useEffect(() => {
-    if (indexRef.current == null || gameMode === "") return;
+    if (indexRef.current == null || gameModeRef.current === "") return;
+    // const todayString = new Date().toISOString().split('T')[0];
+    // const end = gameModeRef.current === "daily" ? todayString : indexRef.current;
     localStorage.setItem(`paroldle_${gameModeRef.current}_gameState_${indexRef.current}`, gameState);
   }, [gameState]);
 
@@ -246,6 +319,26 @@ const App = () => {
       }
       return prev;
     });
+
+    if (gameModeRef.current === "daily") {
+      const todayString = new Date().toISOString().split('T')[0];
+
+      if (gameState === "victory_normal" && !Object.hasOwn(dailyScores, todayString)) {
+        setShowVictory(true);
+        setDailyTotalPoints((prev) => prev + Math.max(0, 200 - guessListRef.current.length));
+        setDailyScores((prev) => ({ ...prev, [todayString]: { song: { nGuesses: guessListRef.current.length, status: "victory_normal" } } }));
+      }
+      else if (gameState === "victory_hardcore" && dailyScores[todayString]?.song?.status === "victory_normal") {
+        setShowVictory(true);
+        setDailyTotalPoints((prev) => prev + 100);
+        setDailyScores((prev) => ({ ...prev, [todayString]: {...prev[todayString], song: { ...prev[todayString].song, status: "victory_hardcore" } } }));
+      }
+      else if (gameState === "abandonned_normal") {
+        const todayString = new Date().toISOString().split('T')[0];
+        setShowVictory(true);
+        setDailyScores((prev) => ({ ...prev, [todayString]: { song: { nGuesses: "∞", status: "abandonned" } } }));
+      }
+    }
   }, [gameState]);
 
   // Gestion du mot reconnu par la voix
@@ -524,8 +617,8 @@ const App = () => {
         setAutoplay={setAutoplay}
       />
       <Container maxW="full" bg={colors.background} centerContent p="10" minH="100vh">
-        <Grid templateColumns="1fr 4fr" gap={6} w="full" mt={5} alignItems="stretch">
-          <GridItem>
+        <Grid templateColumns="repeat(12, 1fr)" gap={4} w="100%">
+          <GridItem colSpan={4}>
             <Sidebar
               index={index}
               guessList={guessList}
@@ -556,10 +649,14 @@ const App = () => {
               setWantsTie={setWantsTie}
               roomId={roomId}
               selectedImage={selectedImage}
-
+              setGameState={setGameState}
+              dailyIndex={dailyIndex}
+              dailyScores={dailyScores}
+              setDailySongOrQuiz={setDailySongOrQuiz}
+              dailyTotalPoints={dailyTotalPoints}
             />
           </GridItem>
-          <GridItem>
+          <GridItem colSpan={8}>
             <Box bg={colors.primary} p="4" borderRadius="3xl" shadow="md" h="100%" minH="600px">
               <Header
                 onInfoClick={() => setShowInfoModal(true)}
@@ -567,94 +664,107 @@ const App = () => {
                 setAutoplay={setAutoplay}
                 autoplay={autoplay}
               />
+              {!(gameMode === "daily" && dailySongOrQuiz === "quiz") && (
+                <Box position="sticky" top="0" zIndex={1000} bg={colors.primary} p="4">
+                  <HStack spacing={4}>
+                    <IconButton
+                      icon={isListening ? <FaMicrophoneSlash /> : <FaMicrophone />}
+                      bgColor={colors.pinkButtonBg}
+                      _hover={{ bgColor: colors.pinkButtonBgHover }}
+                      onClick={toggleListening}
+                      title={(window.SpeechRecognition || window.webkitSpeechRecognition)
+                        ? isListening ? t("Click to stop singing") : t("Click to sing the song")
+                        : t("Voice recognition not supported")}
+                      disabled={!(window.SpeechRecognition || window.webkitSpeechRecognition)}
+                    />
+                    <Input
+                      placeholder={lastWord}
+                      maxW={300}
+                      colorScheme="pink"
+                      value={inputWord}
+                      onChange={(e) => setInputWord(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleClickEnter();
+                      }}
+                    />
+                    <Button
+                      bgColor={colors.pinkButtonBg}
+                      _hover={{ bgColor: colors.pinkButtonBgHover }}
+                      onClick={handleClickEnter}
+                      mr={2}
+                    >
+                      {t("Try")}
+                    </Button>
+                    {((gameState.startsWith('guessing')) && (gameMode === "classic" || gameMode === "daily")) && (
+                      <Button
+                        bgColor={colors.orangeButtonBg}
+                        _hover={{ bgColor: colors.orangeButtonBgHover }}
+                        onClick={handleAbandon}
+                      >
+                        {t("Give up")} {gameState === "guessing_hardcore" ? " " + t("Hardcore") : ""}
+                      </Button>
+                    )}
+                    {gameState === "victory_normal" && (gameMode === "classic" || gameMode === "daily") && (
+                      <Button
+                        bgColor={colors.blueButtonBg}
+                        onClick={() => setShowHardcorePrompt(true)}
+                        _hover={{ bgColor: colors.blueButtonBgHover }}
+                      >
+                        {t("Let's go Hardcore")}
+                      </Button>
+                    )}
+                    {guessList.length > 0 && (
+                      <Text>
+                        {guessFeedback.perfect_match > 0 || guessFeedback.partial_match > 0
+                          ? '🟩'.repeat(guessFeedback.perfect_match) +
+                          '🟧'.repeat(guessFeedback.partial_match)
+                          : '🟥'}
+                      </Text>
+                    )}
+                    {!gameState.startsWith("guessing") && gameState &&
+                      (showAllSong ? (
+                        <ViewOffIcon boxSize={7} onClick={handleClickShowSong} cursor="pointer" />
+                      ) : (
+                        <ViewIcon boxSize={7} onClick={handleClickShowSong} cursor="pointer" />
+                      ))
+                    }
+                  </HStack>
+                </Box>
+              )}
 
-              <Box position="sticky" top="0" zIndex={1000} bg={colors.primary} p="4">
-                <HStack spacing={4}>
-                  <IconButton
-                    icon={isListening ? <FaMicrophoneSlash /> : <FaMicrophone />}
-                    bgColor={colors.pinkButtonBg}
-                    _hover={{ bgColor: colors.pinkButtonBgHover }}
-                    onClick={toggleListening}
-                    title={(window.SpeechRecognition || window.webkitSpeechRecognition)
-                      ? isListening ? t("Click to stop singing") : t("Click to sing the song")
-                      : t("Voice recognition not supported")}
-                    disabled={!(window.SpeechRecognition || window.webkitSpeechRecognition)}
+              <Box bg={colors.lyricsBg} p="4" borderRadius="md" boxShadow="inset 4px 4px 8px rgba(0,0,0,0.3), inset -4px -4px 8px rgba(255,255,255,0.7)" mt={(gameMode === "daily" && dailySongOrQuiz === "quiz") ? 20 : 0}>
+                {gameMode === "daily" && dailySongOrQuiz === "quiz" ? (
+                  <DailyQuiz
+                    songId={dailyIndex}
+                    dailyScores={dailyScores}
+                    setDailyScores={setDailyScores}
+                    totalPoints={dailyTotalPoints}
+                    setTotalPoints={setDailyTotalPoints}
                   />
-                  <Input
-                    placeholder={lastWord}
-                    maxW={300}
-                    colorScheme="pink"
-                    value={inputWord}
-                    onChange={(e) => setInputWord(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleClickEnter();
-                    }}
+                ) : (
+                  <LyricsComponent
+                    song={song}
+                    index={index}
+                    gameState={gameState}
+                    gameMode={gameMode}
+                    gameModeRef={gameModeRef}
+                    setGameState={setGameState}
+                    guess={guess}
+                    setGuess={setGuess}
+                    showAllSong={showAllSong}
+                    setGuessFeedback={setGuessFeedback}
+                    isReady={isReady}
+                    setIsReady={setIsReady}
+                    autoplay={autoplay}
+                    trophies={trophies}
+                    setTrophies={setTrophies}
+                    sendToBattlePlayers={sendToBattlePlayers}
+                    otherPlayersInfo={otherPlayersInfo}
+                    battleStateRef={battleStateRef}
                   />
-                  <Button
-                    bgColor={colors.pinkButtonBg}
-                    _hover={{ bgColor: colors.pinkButtonBgHover }}
-                    onClick={handleClickEnter}
-                    mr={2}
-                  >
-                    {t("Try")}
-                  </Button>
-                  {((gameState.startsWith('guessing')) && gameMode === "classic") && (
-                    <Button
-                      bgColor={colors.orangeButtonBg}
-                      _hover={{ bgColor: colors.orangeButtonBgHover }}
-                      onClick={handleAbandon}
-                    >
-                      {t("Give up")} {gameState === "guessing_hardcore" ? " " + t("Hardcore") : ""}
-                    </Button>
-                  )}
-                  {gameState === "victory_normal" && gameMode === "classic" && (
-                    <Button
-                      bgColor={colors.blueButtonBg}
-                      onClick={() => setShowHardcorePrompt(true)}
-                      _hover={{ bgColor: colors.blueButtonBgHover }}
-                    >
-                      {t("Let's go Hardcore")}
-                    </Button>
-                  )}
-                  {guessList.length > 0 && (
-                    <Text>
-                      {guessFeedback.perfect_match > 0 || guessFeedback.partial_match > 0
-                        ? '🟩'.repeat(guessFeedback.perfect_match) +
-                        '🟧'.repeat(guessFeedback.partial_match)
-                        : '🟥'}
-                    </Text>
-                  )}
-                  {!gameState.startsWith("guessing") && gameState &&
-                    (showAllSong ? (
-                      <ViewOffIcon boxSize={7} onClick={handleClickShowSong} cursor="pointer" />
-                    ) : (
-                      <ViewIcon boxSize={7} onClick={handleClickShowSong} cursor="pointer" />
-                    ))
-                  }
-                </HStack>
+                )}
               </Box>
-              <Box bg={colors.lyricsBg} p="4" borderRadius="md" boxShadow="inset 4px 4px 8px rgba(0,0,0,0.3), inset -4px -4px 8px rgba(255,255,255,0.7)">
-                <LyricsComponent
-                  song={song}
-                  index={index}
-                  gameState={gameState}
-                  gameMode={gameMode}
-                  gameModeRef={gameModeRef}
-                  setGameState={setGameState}
-                  guess={guess}
-                  setGuess={setGuess}
-                  showAllSong={showAllSong}
-                  setGuessFeedback={setGuessFeedback}
-                  isReady={isReady}
-                  setIsReady={setIsReady}
-                  autoplay={autoplay}
-                  trophies={trophies}
-                  setTrophies={setTrophies}
-                  sendToBattlePlayers={sendToBattlePlayers}
-                  otherPlayersInfo={otherPlayersInfo}
-                  battleStateRef={battleStateRef}
-                />
-              </Box>
+
             </Box>
           </GridItem>
         </Grid>

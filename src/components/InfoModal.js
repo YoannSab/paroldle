@@ -42,6 +42,19 @@ const ParoldleModal = ({ isOpen, onClose, autoplay, setAutoplay }) => {
                             🎮 {t("Available game modes")}
                         </Text>
 
+                        {/* Mode Daily */}
+                        <VStack spacing={3} align="start" p={4} borderRadius="md" bg={colors.backgroundLight} boxShadow="md">
+                            <Text fontWeight="bold" fontSize="lg">
+                                📅 {t("Daily Mode")}
+                            </Text>
+                            <Text>
+                                {t("Each day, find the song of the day in as few tries as possible")} !{" "}
+                                {t("Once found, take a quiz about the artist to earn bonus points")} 🎯.{" "}
+                                {t("Compare your score with others and check the daily leaderboard")} 🏆.
+                            </Text>
+                        </VStack>
+
+                        {/* Mode Classique */}
                         <VStack spacing={3} align="start" p={4} borderRadius="md" bg={colors.backgroundLight} boxShadow="md">
                             <Text fontWeight="bold" fontSize="lg">
                                 🎼 {t("Classic Mode")}
@@ -52,16 +65,17 @@ const ParoldleModal = ({ isOpen, onClose, autoplay, setAutoplay }) => {
                             </Text>
                         </VStack>
 
+                        {/* Mode NOPLP */}
                         <VStack spacing={3} align="start" p={4} borderRadius="md" bg={colors.backgroundLight} boxShadow="md">
                             <Text fontWeight="bold" fontSize="lg">
                                 ⚔️ {t("NOPLP Mode")}
                             </Text>
                             <Text>
                                 {t("Select a song from the database")} {t("and try to find")} <Text as="span" fontWeight="bold" color="blue.300">{t("all the lyrics")}</Text> !{" "}
-                                {/* {t("The more you find")}, {t("the more points you score")} 🎶 */}
                             </Text>
                         </VStack>
 
+                        {/* Mode Battle */}
                         <VStack spacing={3} align="start" p={4} borderRadius="md" bg={colors.backgroundLight} boxShadow="md">
                             <Text fontWeight="bold" fontSize="lg">
                                 🎵 {t("Battle Mode")}
@@ -73,9 +87,9 @@ const ParoldleModal = ({ isOpen, onClose, autoplay, setAutoplay }) => {
                             </Text>
                         </VStack>
 
-
                         <Divider borderWidth={2} borderColor={colors.text} width="80%" mx="auto" my={4} />
 
+                        {/* Paramètres */}
                         <VStack spacing={3} align="stretch">
                             <Text fontWeight="bold" fontSize="lg" textAlign="center">
                                 ⚙️ {t("Settings")}

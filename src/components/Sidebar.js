@@ -1,4 +1,10 @@
-import React, { memo, useEffect, useState, useMemo, useCallback } from 'react';
+import React, {
+  memo,
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+} from 'react';
 import { Icon } from '@chakra-ui/icons';
 import {
   Box,
@@ -11,12 +17,13 @@ import {
   TabPanel,
   HStack,
   Button,
+  Flex,
+  useBreakpointValue,
 } from '@chakra-ui/react';
 import { FaMusic, FaUserPlus, FaUserCheck } from 'react-icons/fa';
 import { GiBloodySword } from "react-icons/gi";
-
+import { MdToday } from "react-icons/md";
 import { PiMicrophoneStageDuotone } from "react-icons/pi";
-
 import { SONG_AVAILABILITY_THRESHOLD, SONGS_REQUIRED } from '../constants';
 import GuessListDisplay from './GuessListDisplay';
 import SongsDisplay from './SongsDisplay';
@@ -27,8 +34,8 @@ import MultiplayerPanel from './MultiplayerPanel';
 import { useTranslation } from 'react-i18next';
 import useColors from '../hooks/useColors';
 import OneVsOne from './OneVsOne';
+import QuizTab from './QuizTab';
 
-// ---------- Composant principal Sidebar ----------
 const Sidebar = ({
   index,
   guessList,
@@ -59,24 +66,31 @@ const Sidebar = ({
   setWantsTie,
   roomId,
   selectedImage,
+  setGameState,
+  dailyIndex,
+  dailyScores,
+  setDailySongOrQuiz,
+  dailyTotalPoints
 }) => {
   const colors = useColors();
   const { t } = useTranslation();
 
+  // États locaux pour la gestion de la songList et des filtres
   const [allSongs, setAllSongs] = useState([]);
-  // Filtres locaux
   const [selectedLanguages, setSelectedLanguages] = useState([]);
   const [selectedDecades, setSelectedDecades] = useState([]);
   const [selectedStyles, setSelectedStyles] = useState([]);
   const [filterAvailable, setFilterAvailable] = useState(false);
-  // Nouveaux filtres pour l'état des chansons
   const [selectedStatuses, setSelectedStatuses] = useState([]);
-
-  // Pour gérer l’expansion par style
   const [expandedStyles, setExpandedStyles] = useState({});
   const [activeTab, setActiveTab] = useState(0);
 
-  // Chargement initial de la songList (imaginée comme statique)
+  // Valeurs responsives via useBreakpointValue
+  const headerPadding = useBreakpointValue({ base: 4, md: 6 });
+  const tabPadding = useBreakpointValue({ base: 2, md: 4 });
+  const tabFontSize = useBreakpointValue({ base: 'sm', md: 'md' });
+
+  // Chargement initial de la songList depuis un fichier JSON statique
   useEffect(() => {
     fetch('/songs_lyrics.json')
       .then((response) => response.json())
@@ -86,46 +100,44 @@ const Sidebar = ({
       .catch((err) => console.error("Erreur lors du chargement des chansons:", err));
   }, []);
 
+  // Synchronisation activeTab avec gameMode
   useEffect(() => {
-    const activeTab = localStorage.getItem('paroldle_activeTab');
-    if (activeTab) setActiveTab(Number(activeTab));
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('paroldle_activeTab', activeTab);
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (gameMode === 'NOPLP' && activeTab !== 1) {
-      setActiveTab(1);
-      setIsReady(false);
-      setTimeout(() => {
-        setIsReady(true);
-      }
-        , 1000
-      );
+    // On utilise un switch pour associer le gameMode à l’onglet correspondant
+    switch (gameMode) {
+      case 'daily':
+        if (activeTab !== 0) {
+          setActiveTab(0);
+          setIsReady(false);
+          setTimeout(() => setIsReady(true), 1000);
+        }
+        break;
+      case 'classic':
+        if (activeTab !== 1) {
+          setActiveTab(1);
+          setIsReady(false);
+          setTimeout(() => setIsReady(true), 1000);
+        }
+        break;
+      case 'NOPLP':
+        if (activeTab !== 2) {
+          setActiveTab(2);
+          setIsReady(false);
+          setTimeout(() => setIsReady(true), 1000);
+        }
+        break;
+      case 'battle':
+        if (activeTab !== 3) {
+          setActiveTab(3);
+          setIsReady(false);
+          setTimeout(() => setIsReady(true), 1000);
+        }
+        break;
+      default:
+        break;
     }
-    else if (gameMode === 'classic' && activeTab !== 0) {
-      setActiveTab(0);
-      setIsReady(false);
-      setTimeout(() => {
-        setIsReady(true);
-      }
-        , 1000
-      );
-    }
-    else if (gameMode === 'battle' && activeTab !== 2) {
-      setActiveTab(2);
-      setIsReady(false);
-      setTimeout(() => {
-        setIsReady(true);
-      }
-        , 1000
-      );
-    }
-  }, [gameMode]);
+  }, [gameMode, activeTab, setIsReady]);
 
-  // Pré-calcul : regrouper et trier les chansons par style
+  // Regroupement des chansons par style, triées par rang
   const sortedSongsByStyle = useMemo(() => {
     const groups = {};
     Object.values(allSongs).forEach((song) => {
@@ -143,25 +155,21 @@ const Sidebar = ({
     const result = {};
     Object.keys(sortedSongsByStyle).forEach((style) => {
       const songs = sortedSongsByStyle[style];
-      // Découvertes = chansons trouvées (pas abandonnées)
       const discoveredCount = songs.filter(
         (song) =>
           Object.hasOwn(foundSongs, song.index) &&
           foundSongs[song.index] !== "abandonned"
       ).length;
-      // Trouvées (quelles que soient les conditions)
       const foundCount = songs.filter((song) => Object.hasOwn(foundSongs, song.index)).length;
-
       const tierFromTrophies = Math.floor(trophies / SONG_AVAILABILITY_THRESHOLD);
       const tierFromDiscovered = Math.floor(discoveredCount / SONGS_REQUIRED);
       const unlockedTier = Math.min(tierFromTrophies, tierFromDiscovered);
-
       result[style] = { discoveredCount, unlockedTier, foundCount };
     });
     return result;
   }, [sortedSongsByStyle, foundSongs, trophies]);
 
-  // Langues, décennies et styles disponibles
+  // Options de filtres disponibles pour les langues, décennies et styles
   const availableLanguages = useMemo(() => {
     const langs = new Set();
     Object.values(allSongs).forEach((song) => {
@@ -189,16 +197,17 @@ const Sidebar = ({
     return Array.from(stylesSet);
   }, [allSongs]);
 
-  // Regroupe les chansons par style en appliquant les filtres
+  // Regroupement des chansons par style en appliquant les filtres sélectionnés
   const groupedSongs = useMemo(() => {
     const groups = {};
     Object.keys(sortedSongsByStyle).forEach((style) => {
       const filteredSongs = sortedSongsByStyle[style].filter((song) => {
-        if (selectedLanguages.length > 0 && !selectedLanguages.includes(song.lang)) return false;
-        if (selectedDecades.length > 0 && !selectedDecades.includes(Math.floor(song.year / 10) * 10)) return false;
-        if (selectedStyles.length > 0 && !selectedStyles.includes(song.style)) return false;
-
-        // Filtrage par état de la chanson
+        if (selectedLanguages.length > 0 && !selectedLanguages.includes(song.lang))
+          return false;
+        if (selectedDecades.length > 0 && !selectedDecades.includes(Math.floor(song.year / 10) * 10))
+          return false;
+        if (selectedStyles.length > 0 && !selectedStyles.includes(song.style))
+          return false;
         if (selectedStatuses.length > 0) {
           const status = Object.hasOwn(foundSongs, song.index)
             ? foundSongs[song.index]
@@ -207,7 +216,6 @@ const Sidebar = ({
         }
         return true;
       });
-
       if (filteredSongs.length > 0) {
         if (filterAvailable) {
           const unlockedTier = currentTierPerStyle[style]?.unlockedTier || 0;
@@ -231,13 +239,13 @@ const Sidebar = ({
     selectedStatuses,
   ]);
 
-  // Calcul de la progression globale
+  // Calcul de la progression globale sur l'ensemble des chansons filtrées
   const filteredFlat = useMemo(() => Object.values(groupedSongs).flat(), [groupedSongs]);
   const progressValue = filteredFlat.length > 0
     ? (filteredFlat.filter((song) => Object.hasOwn(foundSongs, song.index)).length / filteredFlat.length) * 100
     : 0;
 
-  // Permet d'afficher/masquer un groupe de style
+  // Fonction pour basculer l’expansion d’un groupe par style
   const toggleGroup = useCallback((style) => {
     setExpandedStyles((prev) => ({ ...prev, [style]: !prev[style] }));
   }, []);
@@ -256,48 +264,74 @@ const Sidebar = ({
     [currentTierPerStyle, trophies]
   );
 
-  const handleOnChange = (index) => {
+  // Lors du changement d'onglet
+  const handleOnChange = useCallback((index) => {
     setSideBarLoading(true);
     setActiveTab(index);
-  };
+  }, [setSideBarLoading]);
 
+  // Synchronisation de gameMode avec l'onglet actif
   useEffect(() => {
-    if (activeTab === 0 && gameMode !== 'classic') {
-      setGameMode('classic');
-    } else if (activeTab === 1 && gameMode !== 'NOPLP') {
-      setGameMode('NOPLP');
+    switch (activeTab) {
+      case 0:
+        if (gameMode !== 'daily') setGameMode('daily');
+        break;
+      case 1:
+        if (gameMode !== 'classic') setGameMode('classic');
+        break;
+      case 2:
+        if (gameMode !== 'NOPLP') setGameMode('NOPLP');
+        break;
+      case 3:
+        if (gameMode !== 'battle') setGameMode('battle');
+        break;
+      default:
+        break;
     }
-    else if (activeTab === 2 && gameMode !== 'battle') {
-      setGameMode('battle');
-    }
-  }, [activeTab, setGameMode]);
+  }, [activeTab, setGameMode, gameMode]);
 
+  // Calcul des joueurs triés pour le mode battle
+  const sortedPlayers = useMemo(() => (
+    [...roomPlayers]
+      .filter((player) =>
+        player === playerName
+          ? battleState !== "not_participating"
+          : otherPlayersInfo[player].battleState !== "not_participating"
+      )
+      .sort((a, b) => a.localeCompare(b))
+  ), [roomPlayers, playerName, battleState, otherPlayersInfo]);
 
-  const sortedPlayers = [...roomPlayers].filter((player) => player === playerName ? battleState !== "not_participating" :
-    otherPlayersInfo[player].battleState !== "not_participating")
-    .sort((a, b) => a.localeCompare(b));
-  const isSelector = sortedPlayers[0] === playerName;
+  const isSelector = useMemo(() => sortedPlayers[0] === playerName, [sortedPlayers, playerName]);
 
   return (
-    <Box maxW="400px" mx="auto" h="100%">
-      {/* Partie supérieure commune (GuessList, titre, etc.) */}
+    <Box mx="auto" h="100%" p={{ base: 2, md: 4 }}>
+      {/* Sidebar Header */}
       <Box
         bg={colors.guessListBg}
-        p={6}
+        p={headerPadding}
         borderRadius="3xl"
         textAlign="center"
         boxShadow="lg"
-        mb={6}
+        mb={headerPadding}
       >
-        <Heading size="lg" mb={3}>🎵 Paroldle</Heading>
-        <Heading size="md" mb={4}>
-          {activeTab === 0 ? `Chanson n°${index + 1}` : 'NOPLP'}
+        <Heading size={{ base: 'lg', md: 'xl' }} mb={3}>
+          🎵 Paroldle
+        </Heading>
+        <Heading size={{ base: 'md', md: 'lg' }} mb={4}>
+          {activeTab === 0
+            ? t("Daily")
+            : activeTab === 1
+            ? t("Classic")
+            : activeTab === 2
+            ? t("NOPLP")
+            : t("Battle")}
         </Heading>
         <Divider width="80%" borderWidth="2px" mx="auto" mb={4} borderColor={colors.text} />
         <GuessListDisplay guessList={guessList} />
       </Box>
+      {/* Tabs & Content */}
       <Box
-        p={2}
+        p={tabPadding}
         borderRadius="3xl"
         boxShadow="lg"
         bg={colors.tabsBgColors[activeTab]}
@@ -310,43 +344,57 @@ const Sidebar = ({
           onChange={handleOnChange}
           isFitted
         >
-          {/* Barre d’onglets */}
-          <TabList mb={4}>
+          <TabList mb={4} fontSize={tabFontSize}>
             <Tab
               _selected={{ bg: colors.tabsColors[0] }}
               _hover={{ bg: colors.tabsColors[0] }}
-              color={"white"}
+              color="white"
               borderRadius="3xl"
               fontWeight="bold"
               display="flex"
               alignItems="center"
               justifyContent="center"
-              mr={2}
+              mr={1}
+              borderWidth={2}
+            >
+              <Icon as={MdToday} mr={2} />
+              {t("Daily")}
+            </Tab>
+            <Tab
+              _selected={{ bg: colors.tabsColors[1] }}
+              _hover={{ bg: colors.tabsColors[1] }}
+              color="white"
+              borderRadius="3xl"
+              fontWeight="bold"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              mr={1}
               borderWidth={2}
             >
               <Icon as={FaMusic} mr={2} />
               {t("Classic")}
             </Tab>
-
             <Tab
-              _selected={{ bg: colors.tabsColors[1] }}
-              _hover={{ bg: colors.tabsColors[1] }}
-              color={"white"}
+              _selected={{ bg: colors.tabsColors[2] }}
+              _hover={{ bg: colors.tabsColors[2] }}
+              color="white"
               borderRadius="3xl"
               fontWeight="bold"
               display="flex"
               alignItems="center"
               justifyContent="center"
               borderWidth={2}
-              mr={2}
+              mr={1}
             >
               <Icon as={PiMicrophoneStageDuotone} mr={2} />
               {t('NOPLP')}
             </Tab>
+            <br/>
             <Tab
-              _selected={{ bg: colors.tabsColors[2] }}
-              _hover={{ bg: colors.tabsColors[2] }}
-              color={"white"}
+              _selected={{ bg: colors.tabsColors[3] }}
+              _hover={{ bg: colors.tabsColors[3] }}
+              color="white"
               borderRadius="3xl"
               fontWeight="bold"
               display="flex"
@@ -357,9 +405,8 @@ const Sidebar = ({
               <Icon as={GiBloodySword} mr={2} />
               {t('Battle')}
             </Tab>
-
           </TabList>
-          <HStack spacing={4} justifyContent="center">
+          <HStack spacing={4} justifyContent="center" mb={4}>
             <Button
               colorScheme={isConnected ? 'green' : 'purple'}
               onClick={() => setRtcModalOpen(true)}
@@ -370,8 +417,6 @@ const Sidebar = ({
               {isConnected ? t('Connected') : t('Join a room')}
             </Button>
           </HStack>
-
-          {/* Panel Multijoueur */}
           {isConnected && (
             <MultiplayerPanel
               players={roomPlayers}
@@ -389,26 +434,104 @@ const Sidebar = ({
               selectedImage={selectedImage}
             />
           )}
-          {/* Contenu des onglets */}
           <TabPanels>
-
-            <TabPanel>
-              {sideBarLoading ?
-                (
-                  <Loading />
-                ) : (
-                  <>
-                    <SongsDisplay
-                      index={index}
-                      groupedSongs={groupedSongs}
-                      currentTierPerStyle={currentTierPerStyle}
-                      foundSongs={foundSongs}
-                      toggleGroup={toggleGroup}
-                      expandedStyles={expandedStyles}
-                      setIndex={setIndex}
-                      getRequirementsForSong={getRequirementsForSong}
-                      progressValue={progressValue}
-                      inProgressSongs={inProgressSongs} /><Filters
+            {/* Onglet Daily */}
+            <TabPanel p={tabPadding}>
+              {sideBarLoading ? (
+                <Loading />
+              ) : (
+                <QuizTab 
+                  dailyScores={dailyScores} 
+                  setDailySongOrQuiz={setDailySongOrQuiz} 
+                  setIsReady={setIsReady} 
+                  dailyTotalPoints={dailyTotalPoints}
+                />
+              )}
+            </TabPanel>
+            {/* Onglet Classic : Affichage des chansons et filtres */}
+            <TabPanel p={tabPadding}>
+              {sideBarLoading ? (
+                <Loading />
+              ) : (
+                <Flex
+                  direction={{ base: 'column', md: 'row' }}
+                  gap={4}
+                >
+                  <SongsDisplay
+                    index={index}
+                    groupedSongs={groupedSongs}
+                    currentTierPerStyle={currentTierPerStyle}
+                    foundSongs={foundSongs}
+                    toggleGroup={toggleGroup}
+                    expandedStyles={expandedStyles}
+                    setIndex={setIndex}
+                    getRequirementsForSong={getRequirementsForSong}
+                    progressValue={progressValue}
+                    inProgressSongs={inProgressSongs}
+                  />
+                  <Filters
+                    availableLanguages={availableLanguages}
+                    availableDecades={availableDecades}
+                    availableStyles={availableStyles}
+                    selectedLanguages={selectedLanguages}
+                    setSelectedLanguages={setSelectedLanguages}
+                    selectedDecades={selectedDecades}
+                    setSelectedDecades={setSelectedDecades}
+                    selectedStyles={selectedStyles}
+                    setSelectedStyles={setSelectedStyles}
+                    filterAvailable={filterAvailable}
+                    setFilterAvailable={setFilterAvailable}
+                    selectedStatuses={selectedStatuses}
+                    setSelectedStatuses={setSelectedStatuses}
+                  />
+                </Flex>
+              )}
+            </TabPanel>
+            {/* Onglet NOPLP */}
+            <TabPanel p={tabPadding}>
+              {sideBarLoading ? (
+                <Loading />
+              ) : (
+                <NOPLP
+                  allSongs={allSongs}
+                  setIndex={setIndex}
+                  foundSongs={foundSongs}
+                  index={index}
+                  inProgressSongs={inProgressSongs}
+                />
+              )}
+            </TabPanel>
+            {/* Onglet Battle */}
+            <TabPanel p={tabPadding}>
+              {sideBarLoading ? (
+                <Loading />
+              ) : (
+                <Flex
+                  direction={{ base: 'column', md: 'row' }}
+                  gap={4}
+                >
+                  <OneVsOne
+                    filteredSongs={filteredFlat}
+                    allSongs={allSongs}
+                    setIndex={setIndex}
+                    playerName={playerName}
+                    roomPlayers={roomPlayers}
+                    otherPlayersInfo={otherPlayersInfo}
+                    setOtherPlayersInfo={setOtherPlayersInfo}
+                    isConnected={isConnected}
+                    battleState={battleState}
+                    setBattleState={setBattleState}
+                    battleStartTime={battleStartTime}
+                    setBattleStartTime={setBattleStartTime}
+                    setFightIndex={setFightIndex}
+                    fightIndex={fightIndex}
+                    foundSongs={foundSongs}
+                    gameState={gameState}
+                    setWantsTie={setWantsTie}
+                  />
+                  {isSelector && (
+                    <Filters
+                      gameMode={gameMode}
                       availableLanguages={availableLanguages}
                       availableDecades={availableDecades}
                       availableStyles={availableStyles}
@@ -421,70 +544,11 @@ const Sidebar = ({
                       filterAvailable={filterAvailable}
                       setFilterAvailable={setFilterAvailable}
                       selectedStatuses={selectedStatuses}
-                      setSelectedStatuses={setSelectedStatuses} />
-                  </>
-                )}
-            </TabPanel>
-
-            <TabPanel>
-              {sideBarLoading ?
-                (
-                  <Loading />
-                ) : (
-                  <NOPLP
-                    allSongs={allSongs}
-                    setIndex={setIndex}
-                    foundSongs={foundSongs}
-                    index={index}
-                    inProgressSongs={inProgressSongs}
-                  />)
-              }
-            </TabPanel>
-
-            <TabPanel>
-              {sideBarLoading ?
-                (
-                  <Loading />
-                ) : (
-                  <>
-                    <OneVsOne
-                      filteredSongs={filteredFlat}
-                      allSongs={allSongs}
-                      setIndex={setIndex}
-                      playerName={playerName}
-                      roomPlayers={roomPlayers}
-                      otherPlayersInfo={otherPlayersInfo}
-                      setOtherPlayersInfo={setOtherPlayersInfo}
-                      isConnected={isConnected}
-                      battleState={battleState}
-                      setBattleState={setBattleState}
-                      battleStartTime={battleStartTime}
-                      setBattleStartTime={setBattleStartTime}
-                      setFightIndex={setFightIndex}
-                      fightIndex={fightIndex}
-                      foundSongs={foundSongs}
-                      gameState={gameState}
-                      setWantsTie={setWantsTie} />
-                    {isSelector && (
-                      <Filters
-                        gameMode={gameMode}
-                        availableLanguages={availableLanguages}
-                        availableDecades={availableDecades}
-                        availableStyles={availableStyles}
-                        selectedLanguages={selectedLanguages}
-                        setSelectedLanguages={setSelectedLanguages}
-                        selectedDecades={selectedDecades}
-                        setSelectedDecades={setSelectedDecades}
-                        selectedStyles={selectedStyles}
-                        setSelectedStyles={setSelectedStyles}
-                        filterAvailable={filterAvailable}
-                        setFilterAvailable={setFilterAvailable}
-                        selectedStatuses={selectedStatuses}
-                        setSelectedStatuses={setSelectedStatuses} />
-                    )}
-                  </>
-                )
-              }
+                      setSelectedStatuses={setSelectedStatuses}
+                    />
+                  )}
+                </Flex>
+              )}
             </TabPanel>
           </TabPanels>
         </Tabs>
@@ -494,5 +558,3 @@ const Sidebar = ({
 };
 
 export default memo(Sidebar);
-
-
