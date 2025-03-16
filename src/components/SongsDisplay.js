@@ -25,8 +25,8 @@ const SongsDisplay = memo(({
     const MAX_GROUP_HEIGHT = 250; // en pixels
 
     return (
-        <Box bg={colors.lyricsBg} p={4} borderRadius="3xl" boxShadow="md" >
-            <Heading fontSize={"3xl"} mb={4} textAlign="center">
+        <Box bg={colors.lyricsBg} p={{base:'4', md:'4'}} borderRadius="3xl" boxShadow="md" >
+            <Heading fontSize={{base:'xl', md:'3xl'}} mb={4} textAlign="center">
                 {t("Songs")} {/* Traduction du titre */}
             </Heading>
             <Progress
@@ -56,7 +56,7 @@ const SongsDisplay = memo(({
 
                     return (
                         <Box key={style} mb={3}>
-                            <Heading size="md" mb={2}>
+                            <Heading size={{base:'sm', md:'md'}} mb={2}>
                                 {t(style) + ' ' + styleEmojis[style] ?? ''}
                             </Heading>
                             <Box
@@ -114,7 +114,7 @@ const SongsDisplay = memo(({
                                             return (
                                                 <Tooltip key={song.index} label={tooltipLabel} hasArrow>
                                                     <Tag
-                                                        size="md"
+                                                        size={{ base: "sm", md: "md" }}
                                                         variant="solid"
                                                         cursor={song.isAvailable ? 'pointer' : 'not-allowed'}
                                                         onClick={(e) => {
@@ -151,8 +151,8 @@ const SongsDisplay = memo(({
                                             borderRadius="full"
                                             boxShadow="md"
                                             _hover={{ bg: colors.buttonBgHover }}
-                                            width="20px"
-                                            height="20px"
+                                            width={{ base: "15px", md: "20px" }}
+                                            height={{ base: "15px", md: "20px" }}
                                             display="flex"
                                             alignItems="center"
                                             justifyContent="center"

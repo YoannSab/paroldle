@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, memo } from 'react';
 import {
   Container,
   Grid,
@@ -10,6 +10,7 @@ import {
   HStack,
   IconButton,
 } from '@chakra-ui/react';
+
 import { FaMicrophone, FaMicrophoneSlash } from "react-icons/fa";
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 import { getSong } from '../lyrics';
@@ -17,6 +18,8 @@ import LyricsComponent from './LyricsComponent';
 import FestiveModal from './FestiveModal';
 import Sidebar from './Sidebar';
 import HardcorePromptModal from './HardcorePromptModal';
+import MobileSidebar from './MobileSidebar';
+
 import { NORMAL_VICTORY_BASE_POINTS, HARDCORE_VICTORY_BONUS } from '../constants';
 import InfoModal from './InfoModal';
 import Header from './Header';
@@ -88,6 +91,8 @@ const App = () => {
 
   localStorage.removeItem("paroldle_activeTab");
 
+  console.log("App Rerendered");
+
   useEffect(() => {
     const fetchDailyIndex = async () => {
       const today = new Date();
@@ -120,6 +125,14 @@ const App = () => {
       localStorage.removeItem(key);
     });
   }, [dailyIndex]);
+
+  useEffect(() => {
+    Object.keys(localStorage).filter((key) => key.startsWith('paroldle_battle') && !(key.endsWith("foundSongs") || key.endsWith("inProgressSongs"))).forEach((key) => {
+      console.log("Removing key", key);
+      localStorage.removeItem(key);
+    }
+    );
+  }, []);
 
   // Définir la langue en fonction du navigateur
   useEffect(() => {
@@ -331,7 +344,7 @@ const App = () => {
       else if (gameState === "victory_hardcore" && dailyScores[todayString]?.song?.status === "victory_normal") {
         setShowVictory(true);
         setDailyTotalPoints((prev) => prev + 100);
-        setDailyScores((prev) => ({ ...prev, [todayString]: {...prev[todayString], song: { ...prev[todayString].song, status: "victory_hardcore" } } }));
+        setDailyScores((prev) => ({ ...prev, [todayString]: { ...prev[todayString], song: { ...prev[todayString].song, status: "victory_hardcore" } } }));
       }
       else if (gameState === "abandonned_normal") {
         const todayString = new Date().toISOString().split('T')[0];
@@ -616,9 +629,47 @@ const App = () => {
         autoplay={autoplay}
         setAutoplay={setAutoplay}
       />
-      <Container maxW="full" bg={colors.background} centerContent p="10" minH="100vh">
-        <Grid templateColumns="repeat(12, 1fr)" gap={4} w="100%">
-          <GridItem colSpan={4}>
+
+      <MobileSidebar
+        index={index}
+        guessList={guessList}
+        setIndex={setIndex}
+        foundSongs={foundSongs}
+        trophies={trophies}
+        setGameMode={setGameMode}
+        gameMode={gameMode}
+        sideBarLoading={sideBarLoading}
+        setSideBarLoading={setSideBarLoading}
+        inProgressSongs={inProgressSongs}
+        isConnected={isConnected}
+        roomPlayers={roomPlayers}
+        otherPlayersInfo={otherPlayersInfo}
+        setOtherPlayersInfo={setOtherPlayersInfo}
+        setRtcModalOpen={setRtcModalOpen}
+        playerName={playerName}
+        sendGuessListCallback={handleSendGuessList}
+        setIsReady={setIsReady}
+        battleState={battleState}
+        setBattleState={setBattleState}
+        myGuess={myGuess}
+        battleStartTime={battleStartTime}
+        setBattleStartTime={setBattleStartTime}
+        fightIndex={fightIndex}
+        setFightIndex={setFightIndex}
+        gameState={gameState}
+        setWantsTie={setWantsTie}
+        roomId={roomId}
+        selectedImage={selectedImage}
+        setGameState={setGameState}
+        dailyIndex={dailyIndex}
+        dailyScores={dailyScores}
+        setDailySongOrQuiz={setDailySongOrQuiz}
+        dailyTotalPoints={dailyTotalPoints}
+      />
+      <Container maxW="full" bg={colors.background} centerContent p={{ base: "2", xl: "10" }} minH="100vh">
+        <Grid templateColumns={{ base: '1fr', xl: 'repeat(12, 1fr)' }} gap={{ base: 2, xl: 4 }} w="100%">
+          {/* Sidebar desktop, affichée uniquement sur écran large */}
+          <GridItem colSpan={{ base: 12, xl: 4 }} display={{ base: 'none', xl: 'block' }}>
             <Sidebar
               index={index}
               guessList={guessList}
@@ -654,10 +705,13 @@ const App = () => {
               dailyScores={dailyScores}
               setDailySongOrQuiz={setDailySongOrQuiz}
               dailyTotalPoints={dailyTotalPoints}
+              isMobile={false}
             />
           </GridItem>
-          <GridItem colSpan={8}>
-            <Box bg={colors.primary} p="4" borderRadius="3xl" shadow="md" h="100%" minH="600px">
+
+          {/* Main content area - full width on mobile */}
+          <GridItem colSpan={{ base: 12, xl: 8 }}>
+            <Box bg={colors.primary} p={{ base: "2", xl: "4" }} borderRadius="3xl" shadow="xl" h="100%" minH={{ base: "400px", xl: "600px" }}>
               <Header
                 onInfoClick={() => setShowInfoModal(true)}
                 trophies={trophies}
@@ -665,74 +719,34 @@ const App = () => {
                 autoplay={autoplay}
               />
               {!(gameMode === "daily" && dailySongOrQuiz === "quiz") && (
-                <Box position="sticky" top="0" zIndex={1000} bg={colors.primary} p="4">
-                  <HStack spacing={4}>
-                    <IconButton
-                      icon={isListening ? <FaMicrophoneSlash /> : <FaMicrophone />}
-                      bgColor={colors.pinkButtonBg}
-                      _hover={{ bgColor: colors.pinkButtonBgHover }}
-                      onClick={toggleListening}
-                      title={(window.SpeechRecognition || window.webkitSpeechRecognition)
-                        ? isListening ? t("Click to stop singing") : t("Click to sing the song")
-                        : t("Voice recognition not supported")}
-                      disabled={!(window.SpeechRecognition || window.webkitSpeechRecognition)}
-                    />
-                    <Input
-                      placeholder={lastWord}
-                      maxW={300}
-                      colorScheme="pink"
-                      value={inputWord}
-                      onChange={(e) => setInputWord(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleClickEnter();
-                      }}
-                    />
-                    <Button
-                      bgColor={colors.pinkButtonBg}
-                      _hover={{ bgColor: colors.pinkButtonBgHover }}
-                      onClick={handleClickEnter}
-                      mr={2}
-                    >
-                      {t("Try")}
-                    </Button>
-                    {((gameState.startsWith('guessing')) && (gameMode === "classic" || gameMode === "daily")) && (
-                      <Button
-                        bgColor={colors.orangeButtonBg}
-                        _hover={{ bgColor: colors.orangeButtonBgHover }}
-                        onClick={handleAbandon}
-                      >
-                        {t("Give up")} {gameState === "guessing_hardcore" ? " " + t("Hardcore") : ""}
-                      </Button>
-                    )}
-                    {gameState === "victory_normal" && (gameMode === "classic" || gameMode === "daily") && (
-                      <Button
-                        bgColor={colors.blueButtonBg}
-                        onClick={() => setShowHardcorePrompt(true)}
-                        _hover={{ bgColor: colors.blueButtonBgHover }}
-                      >
-                        {t("Let's go Hardcore")}
-                      </Button>
-                    )}
-                    {guessList.length > 0 && (
-                      <Text>
-                        {guessFeedback.perfect_match > 0 || guessFeedback.partial_match > 0
-                          ? '🟩'.repeat(guessFeedback.perfect_match) +
-                          '🟧'.repeat(guessFeedback.partial_match)
-                          : '🟥'}
-                      </Text>
-                    )}
-                    {!gameState.startsWith("guessing") && gameState &&
-                      (showAllSong ? (
-                        <ViewOffIcon boxSize={7} onClick={handleClickShowSong} cursor="pointer" />
-                      ) : (
-                        <ViewIcon boxSize={7} onClick={handleClickShowSong} cursor="pointer" />
-                      ))
-                    }
-                  </HStack>
-                </Box>
+                <ControlBar
+                  isListening={isListening}
+                  toggleListening={toggleListening}
+                  inputWord={inputWord}
+                  setInputWord={setInputWord}
+                  handleClickEnter={handleClickEnter}
+                  lastWord={lastWord}
+                  guessList={guessList}
+                  guessFeedback={guessFeedback}
+                  gameState={gameState}
+                  gameMode={gameMode}
+                  showAllSong={showAllSong}
+                  setShowAllSong={setShowAllSong}
+                  handleAbandon={handleAbandon}
+                  showHardcorePrompt={showHardcorePrompt}
+                  setShowHardcorePrompt={setShowHardcorePrompt}
+                  handleClickShowSong={handleClickShowSong}
+                />
               )}
 
-              <Box bg={colors.lyricsBg} p="4" borderRadius="md" boxShadow="inset 4px 4px 8px rgba(0,0,0,0.3), inset -4px -4px 8px rgba(255,255,255,0.7)" mt={(gameMode === "daily" && dailySongOrQuiz === "quiz") ? 20 : 0}>
+              <Box
+                bg={colors.lyricsBg}
+                p={{ base: "2", md: "4" }}
+                borderRadius="md"
+                boxShadow="inset 4px 4px 8px rgba(0,0,0,0.3), inset -4px -4px 8px rgba(255,255,255,0.7)"
+                mt={(gameMode === "daily" && dailySongOrQuiz === "quiz") ? 20 : 0}
+                fontSize={{ base: "sm", md: "md" }}
+              >
                 {gameMode === "daily" && dailySongOrQuiz === "quiz" ? (
                   <DailyQuiz
                     songId={dailyIndex}
@@ -764,15 +778,15 @@ const App = () => {
                   />
                 )}
               </Box>
-
             </Box>
           </GridItem>
         </Grid>
+
         <Box mt={4}>
           <DBManager />
         </Box>
         <footer>
-          <Text textAlign="center" mt={4} color="white" mb={5}>
+          <Text textAlign="center" mt={4} color="white" mb={5} fontSize={{ base: "xs", md: "sm" }}>
             © 2024 Paroldle. {t("Made with ❤️ for Charline")}
           </Text>
         </footer>
@@ -781,4 +795,108 @@ const App = () => {
   );
 };
 
-export default App;
+export default memo(App);
+
+const ControlBar = memo(({ 
+  isListening, 
+  toggleListening, 
+  inputWord, 
+  setInputWord, 
+  handleClickEnter, 
+  lastWord, 
+  guessList, 
+  guessFeedback, 
+  gameState, 
+  gameMode, 
+  showAllSong, 
+  handleClickShowSong,
+  handleAbandon, 
+  showHardcorePrompt, 
+  setShowHardcorePrompt 
+}) => {
+
+  const { t } = useTranslation();
+  const colors = useColors();
+
+
+  return (
+    <Box position="sticky" top={{ base: 10, xl: 0 }} zIndex={900} bg={colors.primary} p={{ base: "2", xl: "4" }} >
+      <HStack spacing={{ base: 2, xl: 4 }} flexWrap="wrap" justifyContent="center">
+        <IconButton
+          size={{ base: "sm", xl: "md" }}
+          icon={isListening ? <FaMicrophoneSlash /> : <FaMicrophone />}
+          bgColor={colors.pinkButtonBg}
+          _hover={{ bgColor: colors.pinkButtonBgHover }}
+          onClick={toggleListening}
+          title={(window.SpeechRecognition || window.webkitSpeechRecognition)
+            ? isListening ? t("Click to stop singing") : t("Click to sing the song")
+            : t("Voice recognition not supported")}
+          disabled={!(window.SpeechRecognition || window.webkitSpeechRecognition)}
+        />
+        <Input
+          placeholder={lastWord}
+          maxW={{ base: "120px", sm: "200px", xl: "300px" }}
+          size={{ base: "sm", xl: "md" }}
+          colorScheme="pink"
+          value={inputWord}
+          onChange={(e) => setInputWord(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleClickEnter();
+          }}
+        />
+        <Button
+          size={{ base: "sm", xl: "md" }}
+          bgColor={colors.pinkButtonBg}
+          _hover={{ bgColor: colors.pinkButtonBgHover }}
+          onClick={handleClickEnter}
+        >
+          {t("Try")}
+        </Button>
+        <Box>
+          {((gameState.startsWith('guessing')) && (gameMode === "classic" || gameMode === "daily")) && (
+            <Button
+              size={{ base: "sm", xl: "md" }}
+              bgColor={colors.orangeButtonBg}
+              _hover={{ bgColor: colors.orangeButtonBgHover }}
+              onClick={handleAbandon}
+              mt={{ base: 1, xl: 0 }}
+            >
+              {t("Give up")} {gameState === "guessing_hardcore" ? " " + t("HC") : ""}
+            </Button>
+          )}
+          {gameState === "victory_normal" && (gameMode === "classic" || gameMode === "daily") && (
+            <Button
+              size={{ base: "sm", xl: "md" }}
+              bgColor={colors.blueButtonBg}
+              onClick={() => setShowHardcorePrompt(true)}
+              _hover={{ bgColor: colors.blueButtonBgHover }}
+              mt={{ base: 1, xl: 0 }}
+            >
+              {t("Let's go Hardcore")}
+            </Button>
+          )}
+
+        </Box>
+        {!gameState.startsWith("guessing") && gameState &&
+          (showAllSong ? (
+            <ViewOffIcon boxSize={{ base: 5, xl: 7 }} onClick={handleClickShowSong} cursor="pointer" />
+          ) : (
+            <ViewIcon boxSize={{ base: 5, xl: 7 }} onClick={handleClickShowSong} cursor="pointer" />
+          ))
+        }
+      </HStack>
+
+      <HStack mt={2} justify="space-between">
+        {guessList.length > 0 && (
+          <Text fontSize={{ base: "sm", xl: "md" }}>
+            {guessFeedback.perfect_match > 0 || guessFeedback.partial_match > 0
+              ? '🟩'.repeat(guessFeedback.perfect_match) +
+              '🟧'.repeat(guessFeedback.partial_match)
+              : '🟥'}
+          </Text>
+        )}
+
+      </HStack>
+    </Box>
+  );
+});

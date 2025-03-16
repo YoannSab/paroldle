@@ -1,5 +1,5 @@
 import React, { useRef, useCallback } from 'react';
-import { Button, HStack } from '@chakra-ui/react';
+import { Button, Flex } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 
 const DBManager = () => {
@@ -58,17 +58,17 @@ const DBManager = () => {
 
   return (
     <>
-      <HStack spacing={4}>
-        <Button colorScheme="red" onClick={resetDB}>
+      <Flex gap={{ base: 2, md: 4 }} direction={{ base: 'column', md: 'row' }}>
+        <Button colorScheme="red" onClick={resetDB} size={{ base: 'sm', md: 'md' }}>
           {t("Reset DB")}
         </Button>
-        <Button colorScheme="blue" onClick={handleSaveDB}>
+        <Button colorScheme="blue" onClick={handleSaveDB} size={{ base: 'sm', md: 'md' }}>
           {t("Save DB")}
         </Button>
-        <Button colorScheme="green" onClick={handleLoadDB}>
+        <Button colorScheme="green" onClick={handleLoadDB} size={{ base: 'sm', md: 'md' }}>
           {t("Load DB")}
         </Button>
-      </HStack>
+      </Flex>
       <input
         type="file"
         ref={fileInputRef}

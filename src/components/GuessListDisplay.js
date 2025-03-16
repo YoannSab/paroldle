@@ -9,18 +9,21 @@ const GuessListDisplay = memo(({ guessList }) => {
   if (guessList.length === 0) return null;
   return (
     <Box mb={4}>
-      <Text fontSize="lg" fontWeight="bold" mb={2}>
+      <Text 
+      fontSize={{ base: "md", md: "lg" }}
+      fontWeight="bold" 
+      mb={2}>
         {t("Previous guesses")}
       </Text>
       <Stack
-        spacing={2}
+        spacing={{ base: 1, md: 2 }}
         direction="row"
         flexWrap="wrap"
         justify="center"
         maxH="150px"
         overflowY="auto"
         css={{
-          '&::-webkit-scrollbar': { width: '6px' },
+          '&::-webkit-scrollbar': { width: '5px' },
           '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '3px' },
           '&::-webkit-scrollbar-thumb': { background: '#888', borderRadius: '3px' },
           '&::-webkit-scrollbar-thumb:hover': { background: '#555' },
@@ -29,7 +32,7 @@ const GuessListDisplay = memo(({ guessList }) => {
         {guessList.map((word, i) => (
           <Tag
             key={i}
-            size="md"
+            size={{ base: "sm", md: "md" }}
             variant="solid"
             bg={colors.guessListBg}
             border={`1px solid ${colors.text}`}

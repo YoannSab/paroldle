@@ -218,78 +218,72 @@ const OneVsOne = ({
         , [gameState]);
 
     return (
-        <VStack spacing={6} align="stretch">
+        <VStack spacing={[3, 4, 6]} align="stretch">
             {/* Battle Box */}
-            <Box p={6} borderRadius="3xl" bg={colors.lyricsBg}>
-                <Heading fontSize="2xl" fontWeight="bold" textAlign="center" mb={4}>
+            <Box p={[3, 4, 6]} borderRadius="3xl" bg={colors.lyricsBg}>
+                <Heading fontSize={["lg", "xl", "2xl"]} fontWeight="bold" textAlign="center" mb={[2, 3, 4]}>
                     ⚔️ {t("1v1 Battle")}
                 </Heading>
-                <Divider borderWidth={2} borderColor={colors.text} width="80%" mx="auto" mb={4} />
+                <Divider borderWidth={[1, 1.5, 2]} borderColor={colors.text} width="80%" mx="auto" mb={[2, 3, 4]} />
 
                 {countdown !== null ? (
-                    <Text fontSize="6xl" textAlign="center" fontWeight="bold" color="yellow.400">
+                    <Text fontSize={["4xl", "5xl", "6xl"]} textAlign="center" fontWeight="bold" color="yellow.400">
                         {countdown}
                     </Text>
                 ) : !isConnected ? (
-                    <Text textAlign="center" fontSize="lg" fontWeight={"bold"}>
+                    <Text textAlign="center" fontSize={["md", "md", "lg"]} fontWeight={"bold"}>
                         {t("You need to be connected to start a battle.")}
                     </Text>
                 ) : !combatStarted ? (
-                    <VStack spacing={5}>
-                        <Text textAlign="center" fontSize="lg" fontWeight={"bold"}>
+                    <VStack spacing={[3, 4, 5]}>
+                        <Text textAlign="center" fontSize={["sm", "md", "lg"]} fontWeight={"bold"}>
                             {t("The first to find the song title wins trophies.")}
                         </Text>
                         {filteredSongs.length === 0 ? (
-                            <Text textAlign="center" fontSize="lg" fontWeight={"bold"}>
+                            <Text textAlign="center" fontSize={["sm", "md", "lg"]} fontWeight={"bold"}>
                                 {t("Uncheck some filters to get more songs!")}
                             </Text>
                         ) : (
-                            <Text textAlign="center" fontSize="lg" fontWeight={"bold"}>
+                            <Text textAlign="center" fontSize={["sm", "md", "lg"]} fontWeight={"bold"}>
                                 {t("Random choice among")} <Text as="span" color="yellow.400">{filteredSongs.length}</Text> {t("songs")}!
                             </Text>
                         )}
-                        {/* {isRolling && (
-                            <Image
-                                mt={-50}
-                                src="https://media.tenor.com/siAgcqv9oSYAAAAi/roll-1.gif"
-                                alt="Rolling dice"
-                                width={100}
-                                height={100}
-                            />
-                        )} */}
-                        <HStack spacing={4}>
+                        <HStack spacing={[2, 3, 4]} flexWrap={["wrap", "nowrap"]}>
                             <Button
                                 colorScheme="red"
-                                size="md"
+                                size={["xs", "md"]}
                                 onClick={handleReadyUp}
                                 isDisabled={roomPlayers.length < 2 || battleState === "ready" || filteredSongs.length === 0}
                                 _hover={{ transform: (roomPlayers.length < 2 || battleState === "ready" || filteredSongs.length === 0) ? "none" : "scale(1.05)" }}
+                                mb={[1, 0]}
+                                w={["full", "auto"]}
                             >
                                 {t("Ready to battle!")}
                             </Button>
                             <Button
                                 colorScheme="blue"
-                                size="md"
+                                size={["xs", "md"]}
                                 onClick={handleNotParticipating}
                                 isDisabled={roomPlayers.length < 2 || battleState === "not_participating"}
                                 _hover={{ transform: (roomPlayers.length < 2 || battleState === "not_participating") ? "none" : "scale(1.05)" }}
+                                w={["full", "auto"]}
                             >
                                 {t("Not participating")}
                             </Button>
                         </HStack>
                     </VStack>
                 ) : (
-                    <VStack spacing={3}>
-                        <Text textAlign="center" fontSize="xl" fontWeight="bold" color="yellow.400">
+                    <VStack spacing={[2, 2, 3]}>
+                        <Text textAlign="center" fontSize={["lg", "xl"]} fontWeight="bold" color="yellow.400">
                             {t("Match in progress!")}
                         </Text>
-                        <Flex align="center" p={3} borderRadius="md" borderWidth={2} >
-                            <Icon as={FaClock} color="yellow.300" boxSize={5} mr={2} />
-                            <Text fontSize="lg">{t("Time elapsed:")} {combatTimer} s</Text>
+                        <Flex align="center" p={[2, 2, 3]} borderRadius="md" borderWidth={[1, 1, 2]} >
+                            <Icon as={FaClock} color="yellow.300" boxSize={[4, 5]} mr={2} />
+                            <Text fontSize={["md", "md", "lg"]}>{t("Time elapsed:")} {combatTimer} s</Text>
                         </Flex>
                         <Button
                             colorScheme="yellow"
-                            size="lg"
+                            size={["md", "md", "lg"]}
                             onClick={handleAskForTie}
                             isDisabled={battleState === "tie" || isTieButtonDisabled}
                             leftIcon={<FaHandshake />}
@@ -302,14 +296,14 @@ const OneVsOne = ({
             </Box>
 
             {/* Previous Fights Box */}
-            <Box p={6} borderRadius="3xl" bg={colors.lyricsBg}>
-                <Heading fontSize="2xl" fontWeight="bold" textAlign="center" mb={4}>
+            <Box p={[3, 4, 6]} borderRadius="3xl" bg={colors.lyricsBg}>
+                <Heading fontSize={["lg", "xl", "2xl"]} fontWeight="bold" textAlign="center" mb={[2, 3, 4]}>
                     🎤 {t("Previous fights")}
                 </Heading>
-                <Divider borderWidth={2} borderColor="gray.600" width="80%" mx="auto" mb={4} />
+                <Divider borderWidth={[1, 1.5, 2]} borderColor="gray.600" width="80%" mx="auto" mb={[2, 3, 4]} />
 
                 {Object.keys(allSongs).length === 0 || !foundSongs || Object.keys(foundSongs).length === 0 ? (
-                    <Text textAlign="center" fontSize="lg" fontWeight={"bold"}>
+                    <Text textAlign="center" fontSize={["sm", "md", "lg"]} fontWeight={"bold"}>
                         {t("No finished fights yet.")}
                     </Text>
                 ) : (

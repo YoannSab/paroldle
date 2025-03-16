@@ -15,8 +15,9 @@ const SearchBar = ({ query, onChange }) => {
             placeholder={t("Type to search...")} // Traduction du placeholder
             value={query}
             onChange={onChange}
-            mb={4}
+            mb={{ base: 2, md: 4 }}
             color={colors.text}
+            size={{ base: "sm", md: "md" }}
         />
     );
 };
@@ -28,11 +29,11 @@ const SearchBar = ({ query, onChange }) => {
 const SongsList = ({ songs, setIndex, index }) => {
     const colors = useColors();
     return (
-        <List spacing={3} overflow={'auto'} maxH={'400px'}>
+        <List spacing={{ base: 1, md: 3 }} overflow={'auto'} maxH={{ base: '300px', md: '400px' }}>
             {songs.map((song) => (
                 <ListItem
                     key={song.index}
-                    p={2}
+                    p={{ base: 1, md: 2 }}
                     border="2px"
                     borderColor="gray.200"
                     borderRadius="md"
@@ -41,7 +42,9 @@ const SongsList = ({ songs, setIndex, index }) => {
                     cursor="pointer"
                     onClick={() => setIndex(song.index)}
                 >
-                    <Text><Text as={'b'}>{song.title}</Text> - {song.author}</Text>
+                    <Text fontSize={{ base: "sm", md: "md" }}>
+                        <Text as={'b'}>{song.title}</Text> - {song.author}
+                    </Text>
                 </ListItem>
             ))}
         </List>
@@ -86,14 +89,14 @@ const NOPLP = ({ allSongs, setIndex, foundSongs, index, inProgressSongs }) => {
     return (
         <>
             {index !== null && (
-                <Box p={4} borderRadius="3xl" boxShadow="md" mb={4} bg={colors.lyricsBg}>
+                <Box p={{ base: 3, md: 4 }} borderRadius="3xl" boxShadow="md" mb={{ base: 2, md: 4 }} bg={colors.lyricsBg}>
                     {allSongs[index] ?
                         (
                             <>
-                                <Heading size="md" textAlign="center">
+                                <Heading size={{ base: "sm", md: "md" }} textAlign="center">
                                     {allSongs[index].title}
                                 </Heading>
-                                <Heading size="md" textAlign="center">
+                                <Heading size={{ base: "sm", md: "md" }} textAlign="center">
                                     {allSongs[index].author} 🔥
                                 </Heading>
                             </>
@@ -105,9 +108,9 @@ const NOPLP = ({ allSongs, setIndex, foundSongs, index, inProgressSongs }) => {
             )}
 
             {/* Recherche de chansons */}
-            <Box p={4} borderRadius="3xl" boxShadow="md" mb={4} bg={colors.lyricsBg}>
-                <Heading size="md" mb={4} textAlign="center">
-                    🎤 {t("Song search")} {/* Traduction du titre */}
+            <Box p={{ base: 3, md: 4 }} borderRadius="3xl" boxShadow="md" mb={{ base: 2, md: 4 }} bg={colors.lyricsBg}>
+                <Heading size={{ base: "sm", md: "md" }} mb={{ base: 2, md: 4 }} textAlign="center">
+                    🎤 {t("Song search")}
                 </Heading>
                 <SearchBar query={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                 {filteredSongs.length !== 0 && (
@@ -116,26 +119,26 @@ const NOPLP = ({ allSongs, setIndex, foundSongs, index, inProgressSongs }) => {
             </Box>
 
             {/* Liste des chansons en cours */}
-            <Box p={4} borderRadius="3xl" boxShadow="md" mb={4} bg={colors.lyricsBg}>
-                <Heading size="md" mb={4} textAlign="center">
-                    ⏳ {t("Songs in progress")} {/* Traduction du titre */}
+            <Box p={{ base: 3, md: 4 }} borderRadius="3xl" boxShadow="md" mb={{ base: 2, md: 4 }} bg={colors.lyricsBg}>
+                <Heading size={{ base: "sm", md: "md" }} mb={{ base: 2, md: 4 }} textAlign="center">
+                    ⏳ {t("Songs in progress")}
                 </Heading>
                 {filteredInProgressSongs.length === 0 && (
-                    <Text textAlign="center" color={colors.text}>
-                        {t("No songs in progress.")} {/* Traduction du texte */}
+                    <Text textAlign="center" color={colors.text} fontSize={{ base: "sm", md: "md" }}>
+                        {t("No songs in progress.")}
                     </Text>
                 )}
                 <SongsList songs={filteredInProgressSongs} setIndex={setIndex} index={index} />
             </Box>
 
             {/* Liste des chansons complétées */}
-            <Box p={4} borderRadius="3xl" boxShadow="md" bg={colors.lyricsBg}>
-                <Heading size="md" mb={4} textAlign="center">
-                    ✔️ {t("Completed songs")} {/* Traduction du titre */}
+            <Box p={{ base: 3, md: 4 }} borderRadius="3xl" boxShadow="md" bg={colors.lyricsBg}>
+                <Heading size={{ base: "sm", md: "md" }} mb={{ base: 2, md: 4 }} textAlign="center">
+                    ✔️ {t("Completed songs")}
                 </Heading>
                 {filteredSongsHistory.length === 0 && (
-                    <Text textAlign="center" color={colors.text}>
-                        {t("No completed songs.")} {/* Traduction du texte */}
+                    <Text textAlign="center" color={colors.text} fontSize={{ base: "sm", md: "md" }}>
+                        {t("No completed songs.")}
                     </Text>
                 )}
                 <SongsList songs={filteredSongsHistory} setIndex={setIndex} index={index} />

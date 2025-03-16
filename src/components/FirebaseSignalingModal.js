@@ -393,52 +393,52 @@ const FirebaseSignalingModal = ({
 
   const colors = useColors();
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="md">
+    <Modal isOpen={isOpen} onClose={onClose} size={{ base: "sm", md: "md" }}>
       <ModalOverlay bg="blackAlpha.500" />
-      <ModalContent borderRadius="2xl" boxShadow="2xl">
+      <ModalContent borderRadius="2xl" boxShadow="2xl" mx={2}>
         <ModalHeader
           bgGradient="linear(to-r, teal.500, green.500)"
           color="white"
-          fontSize="2xl"
+          fontSize={{ base: "xl", md: "2xl" }}
           textAlign="center"
           borderTopRadius="2xl"
+          py={2}
         >
           {t("Multiplayer connection")}
         </ModalHeader>
         <ModalCloseButton color="white" />
-        <ModalBody pb={6} mt={4}>
-          <VStack spacing={4} align="stretch">
+        <ModalBody pb={4} mt={2}>
+          <VStack spacing={3} align="stretch">
             {/* Affichage des salles ouvertes */}
-            <Box w="100%" p={3} bgColor={colors.filtersBg} borderRadius="md" borderWidth={2}>
-              <Text fontWeight="bold" mb={2} textAlign="center">
+            <Box w="100%" p={2} bgColor={colors.filtersBg} borderRadius="md" borderWidth={2}>
+              <Text fontWeight="bold" mb={1} textAlign="center" fontSize={{ base: "sm", md: "md" }}>
                 {t("Available Rooms")}
               </Text>
               {openRooms.length > 0 ? (
-                <VStack spacing={2} align="stretch">
+                <VStack spacing={1} align="stretch">
                   {openRooms.map((room) => (
-                    <HStack key={room.roomId} justify="space-between" px={3}>
+                    <HStack key={room.roomId} justify="space-between" px={2} fontSize={{ base: "xs", md: "sm" }}>
                       <Text fontWeight="medium">{room.roomId}</Text>
-                      <Badge colorScheme="green">
+                      <Badge colorScheme="green" fontSize={{ base: "xs", md: "sm" }}>
                         {room.playersCount} {t("players")}
                       </Badge>
                     </HStack>
                   ))}
                 </VStack>
               ) : (
-                <Text textAlign="center">{t("No open rooms")}</Text>
+                <Text textAlign="center" fontSize={{ base: "xs", md: "sm" }}>{t("No open rooms")}</Text>
               )}
             </Box>
             {/* Entrées pour rejoindre une salle */}
-            <HStack spacing={4} align="stretch">
-              <VStack spacing={4}>
+            <HStack spacing={2} align="stretch">
+              <VStack spacing={2} flex={1}>
                 <Input
                   placeholder={t("Room ID")}
                   value={roomInput}
                   onChange={(e) => setRoomInput(e.target.value)}
                   variant="filled"
-                  size="lg"
+                  size={{ base: "sm", md: "lg" }}
                   focusBorderColor="teal.500"
-                  // on press enter, join the room
                   onKeyPress={(e) => {
                     if (e.key === 'Enter' && roomInput && playerNameInput) {
                       joinRoom();
@@ -450,9 +450,8 @@ const FirebaseSignalingModal = ({
                   value={playerNameInput}
                   onChange={(e) => setPlayerNameInput(e.target.value)}
                   variant="filled"
-                  size="lg"
+                  size={{ base: "sm", md: "lg" }}
                   focusBorderColor="teal.500"
-                  // on press enter, join the room
                   onKeyPress={(e) => {
                     if (e.key === 'Enter' && roomInput && playerNameInput) {
                       joinRoom();
@@ -464,45 +463,69 @@ const FirebaseSignalingModal = ({
               <ProfilePictureModal selectedImage={selectedImage} setSelectedImage={setSelectedImage} />
             </HStack>
             {error && (
-              <Alert status="error" borderRadius="md">
+              <Alert status="error" borderRadius="md" fontSize={{ base: "xs", md: "sm" }}>
                 <AlertIcon />
                 {error}
               </Alert>
             )}
-            <HStack spacing={4} pt={2}>
-              <Button onClick={joinRoom} colorScheme="teal" size="lg" isDisabled={isConnected || !roomInput || !playerNameInput}>
+            <HStack spacing={2} pt={1} justifyContent="center">
+              <Button 
+                onClick={joinRoom} 
+                colorScheme="teal" 
+                size={{ base: "sm", md: "lg" }} 
+                isDisabled={isConnected || !roomInput || !playerNameInput}
+                flex={1}
+              >
                 {t("Join a room")}
               </Button>
-              <Button onClick={disconnect} colorScheme="red" size="lg" isDisabled={!isConnected}>
+              <Button 
+                onClick={disconnect} 
+                colorScheme="red" 
+                size={{ base: "sm", md: "lg" }} 
+                isDisabled={!isConnected}
+                flex={1}
+              >
                 {t("Disconnect")}
               </Button>
             </HStack>
-            <Box pt={4} textAlign="center">
-              <Text fontWeight="bold">
+            <Box pt={2} textAlign="center">
+              <Text fontWeight="bold" fontSize={{ base: "sm", md: "md" }}>
                 {t("Status")} : {t(status)}
               </Text>
             </Box>
             {isConnected && (
-              <Box pt={4} w="100%">
-                <Text fontWeight="bold" mb={2} textAlign="center">
+              <Box pt={2} w="100%">
+                <Text fontWeight="bold" mb={1} textAlign="center" fontSize={{ base: "sm", md: "md" }}>
                   {t("Room players")}
                 </Text>
-                <HStack justify="center" spacing={2} wrap="wrap">
+                <HStack justify="center" spacing={1} wrap="wrap">
                   {roomPlayers.map((name) => (
-                    <Badge key={name} colorScheme="green" fontSize="lg" px={3} py={1}>
+                    <Badge 
+                      key={name} 
+                      colorScheme="green" 
+                      fontSize={{ base: "xs", md: "lg" }} 
+                      px={2} 
+                      py={0.5}
+                      m={0.5}
+                    >
                       {name}
                     </Badge>
                   ))}
                 </HStack>
-                <Text mt={2} textAlign="center">
+                <Text mt={1} textAlign="center" fontSize={{ base: "sm", md: "md" }}>
                   {t("Number of players")} : {roomPlayers.length}
                 </Text>
               </Box>
             )}
           </VStack>
         </ModalBody>
-        <ModalFooter justifyContent="center">
-          <Button onClick={onClose} variant="outline" colorScheme="teal" size="lg">
+        <ModalFooter justifyContent="center" py={2}>
+          <Button 
+            onClick={onClose} 
+            variant="outline" 
+            colorScheme="teal" 
+            size={{ base: "sm", md: "lg" }}
+          >
             {t("Close")}
           </Button>
         </ModalFooter>
@@ -510,5 +533,4 @@ const FirebaseSignalingModal = ({
     </Modal>
   );
 };
-
 export default FirebaseSignalingModal;

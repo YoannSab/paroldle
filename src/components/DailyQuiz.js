@@ -25,6 +25,7 @@ import {
     VStack,
     Image,
 } from '@chakra-ui/react';
+import { useBreakpointValue } from '@chakra-ui/react';
 import { CheckIcon, CloseIcon } from '@chakra-ui/icons';
 import { PiApproximateEqualsBold, PiMagnifyingGlassBold } from 'react-icons/pi';
 import Confetti from 'react-confetti';
@@ -39,6 +40,11 @@ const BUTTON_STYLES = {
     variant: 'outline',
     size: 'lg',
     _hover: { transform: 'scale(1.02)', shadow: 'md' },
+    size: { base: 'sm', md: 'md', lg: 'lg' },
+    fontSize: { base: 'xs', sm: 'sm', md: 'md' },
+    px: { base: 2, sm: 3, md: 4 },
+    py: { base: 1, sm: 2, md: 3 },
+    minW: { base: '60px', sm: '80px', md: '100px' },
 };
 
 const POINTS_CONFIG = {
@@ -48,8 +54,7 @@ const POINTS_CONFIG = {
     general: { skipPenalty: 20 }
 };
 
-const countryFlag = (code) =>
-    <Image src={`https://flagsapi.com/${code}/flat/64.png`} boxSize={6} mr={2} />;
+console.log('DailyQuiz Rerendered');
 
 // ======================
 // MultipleChoiceQuestion
@@ -60,6 +65,10 @@ const MultipleChoiceQuestion = memo(({ options, correctAnswer, onAnswer, userAns
     const [selectedOption, setSelectedOption] = useState(null);
     const [showFeedback, setShowFeedback] = useState(false);
     const { t } = useTranslation();
+
+
+    const gapSize = useBreakpointValue({ base: 2, md: 3, lg: 4 });
+    const flagSize = useBreakpointValue({ base: 4, md: 5, lg: 6 });
 
     const handleOptionClick = useCallback((option) => {
         if (userAnswer) return;
@@ -82,12 +91,18 @@ const MultipleChoiceQuestion = memo(({ options, correctAnswer, onAnswer, userAns
                 : t("Wrong answer") + ` (${t("Attempts remaining")}: ${3 - newAttempts})`,
             status: isCorrect ? 'success' : attempts >= 2 ? 'error' : 'warning',
             duration: 2000,
+            isClosable: true,
         });
 
     }, [attempts, correctAnswer, onAnswer, toast, userAnswer]);
 
+    const customCountryFlag = useCallback((code) =>
+        <Image src={`https://flagsapi.com/${code}/flat/64.png`} boxSize={flagSize} mr={1} />,
+        [flagSize]
+    );
+
     return (
-        <Flex wrap="wrap" gap={4} justify="center">
+        <Flex wrap="wrap" gap={gapSize} justify="center" width="100%">
             {options.map((option, idx) => {
                 const isSelected = userAnswer === option;
                 const isCorrect = option === correctAnswer;
@@ -104,7 +119,7 @@ const MultipleChoiceQuestion = memo(({ options, correctAnswer, onAnswer, userAns
                         colorScheme={colorScheme}
                         onClick={() => handleOptionClick(option)}
                         isDisabled={!!userAnswer}
-                        leftIcon={questionType === 'country' ? countryFlag(option) : null}
+                        leftIcon={questionType === 'country' ? customCountryFlag(option) : null}
                     >
                         {option}
                     </Button>
@@ -123,6 +138,15 @@ const ImageQuestion = memo(({ options, correctAnswer, onAnswer, userAnswer }) =>
     const [attempts, setAttempts] = useState(0);
     const [showFeedback, setShowFeedback] = useState(false);
     const { t } = useTranslation();
+
+    // Responsive values based on screen size
+    const imageSize = useBreakpointValue({ base: "100px", sm: "120px", md: "150px" });
+    const gapSize = useBreakpointValue({ base: 2, sm: 4, md: 6 });
+    const padding = useBreakpointValue({ base: 2, sm: 3, md: 4 });
+    const borderWidth = useBreakpointValue({ base: "2px", sm: "2px", md: "3px" });
+    const iconSize = useBreakpointValue({ base: 4, sm: 5, md: 6 });
+    const fontSize = useBreakpointValue({ base: "xs", sm: "sm", md: "md" });
+    const boxPadding = useBreakpointValue({ base: 1, sm: 1.5, md: 2 });
 
     const handleSelect = useCallback((option) => {
         if (userAnswer) return;
@@ -150,7 +174,13 @@ const ImageQuestion = memo(({ options, correctAnswer, onAnswer, userAnswer }) =>
     }, [attempts, correctAnswer, onAnswer, toast, userAnswer]);
 
     return (
-        <Flex wrap="wrap" gap={6} justify="center" p={4}>
+        <Flex
+            wrap="wrap"
+            gap={gapSize}
+            justify="center"
+            p={padding}
+            width="100%"
+        >
             {options.map((option, idx) => {
                 const isCorrect = option.title === correctAnswer.title;
                 const isSelected = selectedOption?.title === option.title;
@@ -163,37 +193,46 @@ const ImageQuestion = memo(({ options, correctAnswer, onAnswer, userAnswer }) =>
                 return (
                     <Box
                         key={idx}
-                        borderWidth="3px"
+                        borderWidth={borderWidth}
                         borderColor={borderColor}
                         borderRadius="lg"
-                        p={2}
+                        p={boxPadding}
                         onClick={() => handleSelect(option)}
                         cursor={userAnswer ? 'default' : 'pointer'}
-                        _hover={{ shadow: userAnswer ? 'none' : 'lg' }}
+                        _hover={{ shadow: userAnswer ? 'none' : 'md' }}
                         position="relative"
+                        width={{ base: "45%", sm: "40%", md: "auto" }}
+                        minWidth={{ base: "130px", sm: "150px", md: "170px" }}
                     >
                         <Image
                             src={option.image}
                             alt={option.title}
-                            boxSize="150px"
+                            boxSize={imageSize}
                             objectFit="cover"
                             borderRadius="md"
                             opacity={userAnswer && !isCorrect ? 0.5 : 1}
+                            mx="auto"
                         />
                         {isCorrect && userAnswer && (
                             <Icon
                                 as={CheckIcon}
                                 position="absolute"
-                                top={2}
-                                right={2}
+                                top={1}
+                                right={1}
                                 bg="green.500"
                                 color="white"
                                 borderRadius="full"
                                 p={1}
-                                boxSize={6}
+                                boxSize={iconSize}
                             />
                         )}
-                        <Text mt={2} textAlign="center" fontWeight="semibold">
+                        <Text
+                            mt={1}
+                            textAlign="center"
+                            fontWeight="semibold"
+                            fontSize={fontSize}
+                            noOfLines={2}
+                        >
                             {option.title}
                         </Text>
                     </Box>
@@ -211,17 +250,17 @@ const WordByWordLyricsInput = memo(({ correctAnswers, labels, onComplete, userAn
     const { t } = useTranslation();
 
     const initialTitlesState = useMemo(() => (
-        userAnswer ? userAnswer.titlesState : 
-        correctAnswers.map(title =>
-            stringToList(title)
-                .filter(w => w !== '\n')
-                .map(w => ({
-                    word: w,
-                    found: !isAlphanumeric(w),
-                    partial: '',
-                    isAlphanumeric: isAlphanumeric(w)
-                }))
-        )
+        userAnswer ? userAnswer.titlesState :
+            correctAnswers.map(title =>
+                stringToList(title)
+                    .filter(w => w !== '\n')
+                    .map(w => ({
+                        word: w,
+                        found: !isAlphanumeric(w),
+                        partial: '',
+                        isAlphanumeric: isAlphanumeric(w)
+                    }))
+            )
     ), [correctAnswers, userAnswer]);
 
     const [titlesState, setTitlesState] = useState(initialTitlesState);
@@ -276,11 +315,11 @@ const WordByWordLyricsInput = memo(({ correctAnswers, labels, onComplete, userAn
 
             if (titlesState.every(titleWords => titleWords.every(item => item.found))) {
                 const pointsWon = POINTS_CONFIG.songs.perSong
-                onComplete({titlesState, isFinished: true}, pointsWon, isVictorious === undefined ? (isVictorious ? 1 : -2) : 1);
+                onComplete({ titlesState, isFinished: true }, pointsWon, isVictorious === undefined ? (isVictorious ? 1 : -2) : 1);
             }
             else {
                 const pointsWon = POINTS_CONFIG.songs.perSong
-                onComplete({titlesState, isFinished: false}, pointsWon,  0);
+                onComplete({ titlesState, isFinished: false }, pointsWon, 0);
             }
         }
 
@@ -289,25 +328,25 @@ const WordByWordLyricsInput = memo(({ correctAnswers, labels, onComplete, userAn
     }, [titlesState]);
 
     const handleSkip = useCallback(() => {
-        onComplete({ titlesState, isFinished : true }, 0, (isVictorious ? -2 : titlesFound.every(found => !found) ? -1 : -2));
+        onComplete({ titlesState, isFinished: true }, 0, (isVictorious ? -2 : titlesFound.every(found => !found) ? -1 : -2));
     }, [onComplete, titlesState, titlesFound, isVictorious]);
 
     return (
         <Box textAlign="center">
             <Box display="inline-block" textAlign="left" maxWidth="100%">
-                <Flex direction="column" gap={4}>
+                <Flex direction="column" gap={{ base: 2, md: 4 }}>
                     {titlesState.map((title, i) => (
-                        <HStack spacing={2} key={i}>
+                        <HStack spacing={{ base: 2, md: 4 }} key={i}>
                             <Icon
                                 as={titlesFound[i] ? CheckIcon : userAnswer?.isFinished ? CloseIcon : PiMagnifyingGlassBold}
-                                boxSize={4}
+                                boxSize={{ base: 3, md: 4 }}
                                 color={titlesFound[i] ? 'green.500' : userAnswer?.isFinished ? 'red.500' : 'gray.500'}
                             />
-                            <Text fontSize="lg" fontWeight="semibold">
+                            <Text fontSize={{ base: 'sm', md: 'lg' }} fontWeight={{ base: 'normal', md: 'bold' }}>
                                 {i + 1}.
                             </Text>
                             {labels && labels[i] && (
-                                <Text fontSize="lg" fontWeight="bold">
+                                <Text fontSize={{ base: 'sm', md: 'lg' }} fontWeight={{ base: 'normal', md: 'bold' }}>
                                     {labels[i]} :
                                 </Text>
                             )}
@@ -319,12 +358,12 @@ const WordByWordLyricsInput = memo(({ correctAnswers, labels, onComplete, userAn
                                             colorScheme={userAnswer?.isFinished ? (word.found ? 'green' : 'red') : word.found ? 'green' : word.partial ? 'orange' : 'cyan'}
                                             width={word.partial && !word.found && !userAnswer?.isFinished ? `${Math.max(word.partial.length + 2, word.word.length + 1)}ch` : `${(word.word.length + 2)}ch`}
                                             justifyContent="center"
-                                            fontSize='xl'
+                                            fontSize={{ base: 'sm', md: 'lg' }}
                                         >
                                             {word.found || userAnswer?.isFinished ? word.word : word.partial || ''}
                                         </Tag>
                                     ) : (
-                                        <Text key={j} fontSize="xl">
+                                        <Text key={j} fontSize={{ base: 'sm', md: 'lg' }}>
                                             {word.word}
                                         </Text>
                                     )
@@ -333,23 +372,34 @@ const WordByWordLyricsInput = memo(({ correctAnswers, labels, onComplete, userAn
                         </HStack>
                     ))}
                 </Flex>
-                <Flex mt={6} gap={2} align="center" justify="center">
-                    <form onSubmit={handleSubmit} style={{ flexGrow: 1, maxWidth: '600px' }}>
-                        <Flex gap={2}>
-                            <Input
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                placeholder={t("Enter a word...")}
-                                variant="filled"
-                                isDisabled={titlesFound.every(Boolean) || userAnswer?.isFinished}
-                            />
-                            <Button type="submit" colorScheme="blue" px={8} isDisabled={titlesFound.every(Boolean) || userAnswer?.isFinished}>
-                                {t("Validate")}
-                            </Button>
-                        </Flex>
-                    </form>
+                <Flex mt={{ base: 2, md: 4 }} align="center" justify="center" gap={2}>
+                    <Input
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder={useBreakpointValue({ base: t("Word..."), md: t("Enter a word...") })}
+                        variant="filled"
+                        size={{ base: 'xs', md: 'sm', lg: 'md' }}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e)}
+                        isDisabled={titlesFound.every(Boolean) || userAnswer?.isFinished}
+                    />
+                    <Button
+                        type="submit"
+                        colorScheme="blue"
+                        size={{ base: 'xs', md: 'sm', lg: 'md' }}
+                        isDisabled={titlesFound.every(Boolean) || userAnswer?.isFinished}
+                        onClick={handleSubmit}
+                    >
+                        {t("Validate")}
+                    </Button>
+                        
                     {!userAnswer?.isFinished && !titlesFound.every(Boolean) && (
-                        <Button onClick={handleSkip} colorScheme="yellow" ml={4}>
+                        <Button 
+                        onClick={handleSkip} 
+                        colorScheme="yellow" 
+                        size={{ base: 'xs', md: 'sm', lg: 'md' }}
+                        
+                        isDisabled={titlesFound.every(Boolean) || userAnswer?.isFinished}
+                        >
                             {t("Skip")}
                         </Button>
                     )}
@@ -399,7 +449,7 @@ const IntruderQuestion = memo(({ question, onAnswer, userAnswer }) => {
                 toast({
                     title: t("Wrong answer") + ` (${t("Attempts remaining")}: ${remainingAttempts})`,
                     status: "warning",
-                    duration: 2000
+                    duration: 2000,
                 });
 
                 setShowFeedback(true);
@@ -423,7 +473,7 @@ const IntruderQuestion = memo(({ question, onAnswer, userAnswer }) => {
 
     return (
         <Box>
-            <Flex wrap="wrap" gap={3} mb={6}>
+            <Flex wrap="wrap" gap={{ base: 2, md: 4, lg: 6 }} justify="center" mb={{ base: 2, md: 4 }}>
                 {question.options.map((track, i) => {
                     let colorScheme = 'gray';
                     if (showArtists || userAnswer) {
@@ -448,7 +498,7 @@ const IntruderQuestion = memo(({ question, onAnswer, userAnswer }) => {
                             }}
                             colorScheme={colorScheme}
                             _hover={{ transform: 'scale(1.02)', shadow: 'md' }}
-                            borderWidth={selectedTracks.includes(track) ? "3px" : "1px"}
+                            borderWidth={selectedTracks.includes(track) ? "4px" : "1px"}
                             variant="solid"
                             isDisabled={!!userAnswer}
                             leftIcon={colorScheme === 'green' ? <CheckIcon /> : colorScheme === 'red' ? <CloseIcon /> : null}
@@ -461,7 +511,12 @@ const IntruderQuestion = memo(({ question, onAnswer, userAnswer }) => {
             </Flex>
             {(showArtists || userAnswer) && (
                 <Box>
-                    <Alert status="info" mb={4}>
+                    <Alert 
+                        status="info"
+                        mb={{ base: 2, md: 4 }}
+                        size={{ base: "sm", md: "md" }}
+                        
+                    >
                         <AlertIcon />
                         {t("Now identify the real artists.")}
                     </Alert>
@@ -484,16 +539,16 @@ const PlayerNameInput = memo(({ playerName, setPlayerName }) => {
     const { t } = useTranslation();
 
     return (
-    <Input
-        placeholder={t("Your Name")}
-        size="lg"
-        variant="filled"
-        focusBorderColor="blue.500"
-        _placeholder={{ color: 'gray.500' }}
-        value={playerName}
-        onChange={(e) => setPlayerName(e.target.value)}
-    />
-);
+        <Input
+            placeholder={t("Your Name")}
+            size={{ base: 'sm', md: 'md', lg: 'lg' }}
+            variant="filled"
+            focusBorderColor="blue.500"
+            _placeholder={{ color: 'gray.500' }}
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+        />
+    );
 });
 
 
@@ -505,12 +560,17 @@ const DailyQuizHeader = memo(({ quiz, progress }) => {
 
     return (
         <Flex direction="column" align="center" mb={8}>
-        <Heading mb={2}>{quiz.song}</Heading>
-        <Text fontSize="2xl" color="gray.600" fontWeight={"bold"}>{quiz.artist}</Text>
-        <Progress value={progress} w="100%" mt={6} colorScheme="purple" />
-    </Flex>
-    
-);
+            <Heading mb={2}>{quiz.artist}</Heading>
+            <Text 
+            fontSize={{ base: 'md', md: 'lg', lg: 'xl' }}
+            color="gray.600" 
+            fontWeight={"bold"}>
+                {quiz.song}
+                </Text>
+            <Progress value={progress} w="100%" mt={6} colorScheme="purple" />
+        </Flex>
+
+    );
 });
 
 /* ---------------------------------------------------------------------------
@@ -521,63 +581,63 @@ const DailyQuizQuestions = memo(
     ({ quiz, currentQuestion, lastUnlockedQuestion, answers, setTotalPoints, completedQuestions, handleAnswer, setCurrentQuestion }) => {
         const { t } = useTranslation();
         return (
-        <Accordion allowToggle index={currentQuestion} onChange={setCurrentQuestion}>
-            {quiz.questions.map((q, i) => (
-                <AccordionItem key={i} border="none" isDisabled={i > lastUnlockedQuestion}>
-                    <AccordionButton _focus={{ boxShadow: 'none' }}>
-                        <Box flex="1" textAlign="left">
-                            <Tag colorScheme="blue" mr={2}>
-                                Question {i + 1}
-                            </Tag>
-                            {t(q.question)}
-                        </Box>
-                        {completedQuestions[i] ? (
-                            completedQuestions[i] === -1 ? (
-                                <CloseIcon color="red.500" />
-                            ) : completedQuestions[i] === -2 ? (
-                                <PiApproximateEqualsBold color="orange" />
+            <Accordion allowToggle index={currentQuestion} onChange={setCurrentQuestion}>
+                {quiz.questions.map((q, i) => (
+                    <AccordionItem key={i} border="none" isDisabled={i > lastUnlockedQuestion}>
+                        <AccordionButton _focus={{ boxShadow: 'none' }}>
+                            <Box flex="1" textAlign="left" fontSize={{ base: 'sm', md: 'md', lg: 'lg' }}>
+                                <Tag colorScheme="blue" mr={2}>
+                                    Question {i + 1}
+                                </Tag>
+                                {t(q.question)}
+                            </Box>
+                            {completedQuestions[i] ? (
+                                completedQuestions[i] === -1 ? (
+                                    <CloseIcon color="red.500" />
+                                ) : completedQuestions[i] === -2 ? (
+                                    <PiApproximateEqualsBold color="orange" />
+                                ) : (
+                                    <CheckIcon color="green.500" />
+                                )
                             ) : (
-                                <CheckIcon color="green.500" />
-                            )
-                        ) : (
-                            <AccordionIcon />
-                        )}
-                    </AccordionButton>
-                    <AccordionPanel pb={4}>
-                        {q.type === 'year' || q.type === 'country' ? (
-                            <MultipleChoiceQuestion
-                                options={q.options}
-                                correctAnswer={q.correctAnswer}
-                                onAnswer={(a, p, s) => handleAnswer(i, a, p, s)}
-                                userAnswer={answers[i]}
-                                questionType={q.type}
-                            />
-                        ) : q.type === 'image' ? (
-                            <ImageQuestion
-                                options={q.options}
-                                correctAnswer={q.correctAnswer}
-                                onAnswer={(a, p, s) => handleAnswer(i, a, p, s)}
-                                userAnswer={answers[i]}
-                            />
-                        ) : q.type === 'free-text' ? (
-                            <WordByWordLyricsInput
-                                correctAnswers={q.correctAnswers}
-                                onComplete={(a, p, s) => handleAnswer(i, a, p, s)}
-                                userAnswer={answers[i]}
-                            />
-                        ) : (
-                            <IntruderQuestion
-                                question={q}
-                                onAnswer={(a, p, s) => handleAnswer(i, a, p, s)}
-                                userAnswer={answers[i]}
-                            />
-                        )}
-                    </AccordionPanel>
-                </AccordionItem>
-            ))}
-        </Accordion>
-    );
-});
+                                <AccordionIcon />
+                            )}
+                        </AccordionButton>
+                        <AccordionPanel pb={{ base: 2, md: 4 }}>
+                            {q.type === 'year' || q.type === 'country' ? (
+                                <MultipleChoiceQuestion
+                                    options={q.options}
+                                    correctAnswer={q.correctAnswer}
+                                    onAnswer={(a, p, s) => handleAnswer(i, a, p, s)}
+                                    userAnswer={answers[i]}
+                                    questionType={q.type}
+                                />
+                            ) : q.type === 'image' ? (
+                                <ImageQuestion
+                                    options={q.options}
+                                    correctAnswer={q.correctAnswer}
+                                    onAnswer={(a, p, s) => handleAnswer(i, a, p, s)}
+                                    userAnswer={answers[i]}
+                                />
+                            ) : q.type === 'free-text' ? (
+                                <WordByWordLyricsInput
+                                    correctAnswers={q.correctAnswers}
+                                    onComplete={(a, p, s) => handleAnswer(i, a, p, s)}
+                                    userAnswer={answers[i]}
+                                />
+                            ) : (
+                                <IntruderQuestion
+                                    question={q}
+                                    onAnswer={(a, p, s) => handleAnswer(i, a, p, s)}
+                                    userAnswer={answers[i]}
+                                />
+                            )}
+                        </AccordionPanel>
+                    </AccordionItem>
+                ))}
+            </Accordion>
+        );
+    });
 
 /* ---------------------------------------------------------------------------
   Sous-composant DailyQuizFooter
@@ -588,7 +648,7 @@ const DailyQuizFooter = memo(
         const { t } = useTranslation();
         if (!quizEnded) return null;
         return (
-            <Box textAlign="center" maxW="600px" mx="auto" mt={5}>
+            <Box textAlign="center" >
                 <VStack spacing={4}>
                     <Alert
                         status="success"
@@ -598,12 +658,12 @@ const DailyQuizFooter = memo(
                         justifyContent="center"
                         textAlign="center"
                         borderRadius="lg"
-                        py={6}
+                        py={{ base: 4, md: 6 }}
                     >
-                        <AlertTitle fontSize="xl">{t("Quiz finished!")}</AlertTitle>
-                        <AlertDescription fontSize="lg" fontWeight="medium">
+                        <AlertTitle fontSize={{base:"md", md:"lg", lg:"xl"}}>{t("Quiz finished!")}</AlertTitle>
+                        <AlertDescription fontSize={{base:"sm", md:"md", lg:"lg"}} fontWeight={"medium"}>
                             🎉 {t("You scored")}{" "}
-                            <Badge colorScheme="green" fontSize="lg" px={2} py={1}>
+                            <Badge colorScheme="green" fontSize={{base:"sm", md:"md", lg:"lg"}} transform={"translateY(-2px)"}>
                                 {totalPoints} {t("points!")}
                             </Badge>
                             <br />
@@ -614,13 +674,14 @@ const DailyQuizFooter = memo(
                         <PlayerNameInput playerName={playerName} setPlayerName={setPlayerName} />
                         <Button
                             colorScheme="blue"
-                            size="lg"
+                            size={{ base: 'sm', md: 'md', lg: 'lg' }}
                             onClick={() => saveDailyScore(playerName, dailyScores, toast)}
                             _hover={{ transform: 'scale(1.02)' }}
                             transition="all 0.2s"
                             isDisabled={quizSaved}
+                            fontSize={{ base: 'xs', sm: 'sm', md: 'md' }}
                         >
-                            {t("Leaderboard")}
+                            {t("Save")}
                         </Button>
                     </Flex>
                 </VStack>
@@ -719,7 +780,8 @@ const DailyQuiz = ({ songId, dailyScores, setDailyScores, totalPoints, setTotalP
             ...prev,
             [questionIndex]: status
         }));
-        setTotalPoints(prev => prev + Math.max(points, 0));
+        const newTotalPoints = totalPoints + Math.max(points, 0);
+        setTotalPoints(newTotalPoints);
         console.log("Question", questionIndex, "répondu avec", answer, "pour", points, "points", "status", status);
         if (status === 0) return;
 
@@ -732,14 +794,14 @@ const DailyQuiz = ({ songId, dailyScores, setDailyScores, totalPoints, setTotalP
             setQuizEnded(true);
             setDailyScores(prev => {
                 const todayString = new Date().toISOString().split('T')[0];
-                return { ...prev, [todayString]: { ...prev[todayString], quiz: { score: totalPoints } } };
+                return { ...prev, [todayString]: { ...prev[todayString], quiz: { score: newTotalPoints } } };
             });
             toast({
                 title: t("Quiz finished!"),
                 status: "success",
                 duration: 2000
             });
-            
+
             setTimeout(() => {
                 setCurrentQuestion(-1);
                 setShowConfetti(true);
@@ -756,7 +818,7 @@ const DailyQuiz = ({ songId, dailyScores, setDailyScores, totalPoints, setTotalP
                 status: "warning",
                 duration: 2000
             });
-            
+
             return;
         }
         const today = new Date().toISOString().split('T')[0];
@@ -767,7 +829,7 @@ const DailyQuiz = ({ songId, dailyScores, setDailyScores, totalPoints, setTotalP
                     status: "warning",
                     duration: 2000
                 });
-                
+
                 return;
             }
             set(ref(database, `daily_scores/${today}/${playerName}`), dailyScores[today])
@@ -777,7 +839,7 @@ const DailyQuiz = ({ songId, dailyScores, setDailyScores, totalPoints, setTotalP
                         status: "success",
                         duration: 2000
                     });
-                    
+
                     setQuizSaved(true);
                 });
         });

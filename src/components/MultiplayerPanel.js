@@ -10,7 +10,8 @@ import {
   Divider,
   IconButton,
   Tooltip,
-  Flex
+  Flex,
+  useBreakpointValue
 } from '@chakra-ui/react';
 import { FaMusic, FaUpload, FaTrophy, FaSkull, FaBalanceScale } from 'react-icons/fa';
 import useColors from '../hooks/useColors';
@@ -68,14 +69,16 @@ const MultiplayerPanel = ({
     return { victories, defeats, ties };
   }, [foundSongs]);
 
-  return (
-    <Box p={6} borderRadius="2xl" boxShadow="lg" bg={colors.lyricsBg} m={4}>
-      <Heading fontSize="2xl" fontWeight="bold" mb={4} textAlign="center">
-      🎮 {t("Room")} <Text as={"span"} color="blue.300">{roomId.toUpperCase()}</Text>
-      </Heading>
-      <Divider borderWidth={2} borderColor={colors.text} width="80%" mx="auto" mb={4} />
+  const iconSize = useBreakpointValue({ base: 11, sm: 15, md: 18 });
 
-      <VStack spacing={4} align="start" w="100%">
+  return (
+    <Box p={[3, 4, 6]} borderRadius="2xl" boxShadow="lg" bg={colors.lyricsBg} m={[2, 3, 4]}>
+      <Heading fontSize={["lg", "xl", "2xl"]} fontWeight="bold" mb={[2, 3, 4]} textAlign="center">
+        🎮 {t("Room")} <Text as={"span"} color="blue.300">{roomId.toUpperCase()}</Text>
+      </Heading>
+      <Divider borderWidth={[1, 1.5, 2]} borderColor={colors.text} width="80%" mx="auto" mb={[2, 3, 4]} />
+
+      <VStack spacing={[2, 3, 4]} align="start" w="100%">
         {[playerName, ...players.filter(item => item !== playerName)].map((player, idx) => {
           const imageNumber = otherPlayersInfo[player]?.profilePicture ?? `pdp${(idx % 4) + 1}`;
           const playerImage = player !== playerName ? `/characters/${imageNumber}.png` : `/characters/${selectedImage}.png`;
@@ -96,23 +99,21 @@ const MultiplayerPanel = ({
           const { victories, defeats, ties } = getMatchResults(player);
 
           return (
-            <Box key={player} p={4} borderRadius="xl" bg={colors.lyricsBg} boxShadow="md" w="100%">
-              <HStack spacing={4} w="100%" justify="space-between">
+            <Box key={player} p={[2, 3, 4]} borderRadius="xl" bg={colors.lyricsBg} boxShadow="md" w="100%">
+              <HStack spacing={[2, 3, 4]} w="100%" justify="space-between" flexWrap={["wrap", "nowrap"]}>
                 {/* Avatar */}
-                <HStack spacing={2}>
+                <HStack spacing={[1, 1.5, 2]}>
+                  <Text fontSize={["xs", "sm", "md"]}>{player === playerName || otherPlayersInfo[player]?.sendFunc ? "🟢" : "🔴"}</Text>
 
-                  <Text>{player === playerName || otherPlayersInfo[player]?.sendFunc ? "🟢" : "🔴"}</Text>
-
-                  <Tooltip label={playerGameInfo} fontSize="sm" hasArrow>
-                    <Avatar size="md" src={playerImage} name={player} />
+                  <Tooltip label={playerGameInfo} fontSize={["xs", "sm"]} hasArrow>
+                    <Avatar size={["sm", "md"]} src={playerImage} name={player} />
                   </Tooltip>
-                  <VStack spacing={2}>
-                    <Text fontWeight="bold">{playerNameLabel}</Text>
+                  <VStack spacing={1} align="start">
+                    <Text fontSize={["xs", "sm", "md"]} fontWeight="bold" noOfLines={1}>{playerNameLabel}</Text>
                   </VStack>
                 </HStack>
 
                 {/* Nom & Statut Aligné à Droite */}
-
                 {gameMode === "battle" && (
                   <Badge
                     colorScheme={
@@ -131,8 +132,9 @@ const MultiplayerPanel = ({
                                   : "yellow"
                     }
                     borderRadius="full"
-                    px={3}
-                    py={1}
+                    px={[2, 2.5, 3]}
+                    py={[0.5, 0.75, 1]}
+                    fontSize={["2xs", "sm", "md"]}
                   >
                     {t(
                       otherPlayersInfo[player]?.battleState ||
@@ -144,13 +146,13 @@ const MultiplayerPanel = ({
 
                 {/* Boutons à Droite */}
                 {gameMode !== "battle" && player !== playerName && (
-                  <HStack spacing={2}>
-                    <Tooltip label={t("Send guess list")} fontSize="sm" hasArrow>
+                  <HStack spacing={[1, 1.5, 2]}>
+                    <Tooltip label={t("Send guess list")} fontSize={["xs", "sm"]} hasArrow>
                       <IconButton
                         icon={<FaUpload />}
                         variant="ghost"
                         colorScheme="blue"
-                        size="sm"
+                        size={["xs", "sm"]}
                         _hover={{ transform: "scale(1.1)" }}
                         onClick={() => sendGuessListCallback(player)}
                       />
@@ -163,7 +165,7 @@ const MultiplayerPanel = ({
                           ? t("")
                           : `${t("Go to mode:")} ${otherPlayersInfo[player]?.gameMode} -> ${t("Index:")} ${otherPlayersInfo[player]?.song?.index}`
                       }
-                      fontSize="sm"
+                      fontSize={["xs", "sm"]}
                       hasArrow
                     >
                       <IconButton
@@ -175,7 +177,7 @@ const MultiplayerPanel = ({
                         icon={<FaMusic />}
                         variant="ghost"
                         colorScheme="pink"
-                        size="sm"
+                        size={["xs", "sm"]}
                         onClick={() => handleOnClick(player)}
                       />
                     </Tooltip>
@@ -184,35 +186,33 @@ const MultiplayerPanel = ({
               </HStack>
 
               {/* Statistiques Centrés en Bas */}
-              <Flex justify="center" w="100%" mt={2}>
+              <Flex justify="center" w="100%" mt={[1, 1.5, 2]}>
                 {gameMode === "battle" ? (
-                  <HStack spacing={3}>
-                    <Badge colorScheme="green" borderRadius="full" px={3} py={1}>
-                      <HStack spacing={1}>
-                        <FaTrophy />
-                        <Text>{victories}</Text>
+                  <HStack spacing={[1, 2, 3]}>
+                    <Badge colorScheme="green" borderRadius="full" px={[2, 2.5, 3]} py={[0.5, 0.75, 1]} fontSize={["xs", "sm", "md"]}>
+                      <HStack spacing={[0.5, 1]}>
+                        <FaTrophy size={iconSize} />
+                        <Text fontSize={["xs", "sm", "md"]}>{victories}</Text>
                       </HStack>
                     </Badge>
-                    <Badge colorScheme="red" borderRadius="full" px={3} py={1}>
-                      <HStack spacing={1}>
-                        <FaSkull />
-                        <Text>{defeats}</Text>
+                    <Badge colorScheme="red" borderRadius="full" px={[2, 2.5, 3]} py={[0.5, 0.75, 1]} fontSize={["xs", "sm", "md"]}>
+                      <HStack spacing={[0.5, 1]}>
+                        <FaSkull size={iconSize} />
+                        <Text fontSize={["xs", "sm", "md"]}>{defeats}</Text>
                       </HStack>
                     </Badge>
-                    <Badge colorScheme="yellow" borderRadius="full" px={3} py={1}>
-                      <HStack spacing={1}>
-                        <FaBalanceScale />
-                        <Text>{ties}</Text>
+                    <Badge colorScheme="yellow" borderRadius="full" px={[2, 2.5, 3]} py={[0.5, 0.75, 1]} fontSize={["xs", "sm", "md"]}>
+                      <HStack spacing={[0.5, 1]}>
+                        <FaBalanceScale size={iconSize} />
+                        <Text fontSize={["xs", "sm", "md"]}>{ties}</Text>
                       </HStack>
                     </Badge>
                   </HStack>
                 ) : (
-
-                  <Badge colorScheme="blue" borderRadius="full" px={2} py={1}>
+                  <Badge colorScheme="blue" borderRadius="full" px={[1.5, 2]} py={[0.5, 0.75, 1]} fontSize={["2xs", "sm", "md"]} size={["xs", "sm", "md"]}>
                     {latestGuess}
                     {latestGuess === "..." ? "" : " ?"}
                   </Badge>
-
                 )}
               </Flex>
             </Box>

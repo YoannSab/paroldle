@@ -51,15 +51,40 @@ const StatCard = ({ icon, title, value, helpText, color }) => {
             _hover={{ transform: "translateY(-5px)", boxShadow: "lg" }}
             h="100%"
         >
-            <CardBody>
-                <Flex align="center" mb={2}>
-                    <Icon as={icon} color={iconColor} boxSize={6} mr={2} />
-                    <Text fontWeight="medium" color="gray.500" fontSize="sm">{title}</Text>
+            <CardBody py={{ base: 1, md: 4 }} px={{ base: 1, md: 5 }}>
+                <Flex 
+                    align="center" 
+                    
+                    flexDirection={{ base: "column", sm: "row" }}
+                    gap={{ base: 1, sm: 2 }}
+                >
+                    <Icon as={icon} color={iconColor} boxSize={{ base: 4, md: 6 }} mr={{ base: 0, sm: 2 }} />
+                    <Text 
+                        fontWeight="medium" 
+                        color="gray.500" 
+                        fontSize={{ base: "xs", md: "sm" }}
+                        textAlign={{ base: "center", sm: "left" }}
+                    >
+                        {title}
+                    </Text>
                 </Flex>
                 <Stat>
-                    <Flex align="baseline" gap={1}>
-                        <StatNumber fontSize="2xl" fontWeight="bold">{value}</StatNumber>
-                        {helpText && <Text fontSize="xs" color="gray.500" alignSelf="flex-end" mb={1}>{helpText}</Text>}
+                    <Flex 
+                        align="baseline" 
+                        gap={1} 
+                        justifyContent={{ base: "center", sm: "flex-start" }}
+                    >
+                        <StatNumber fontSize={{ base: "xl", md: "2xl" }} fontWeight="bold">{value}</StatNumber>
+                        {helpText && (
+                            <Text 
+                                fontSize={{ base: "2xs", md: "xs" }} 
+                                color="gray.500" 
+                                alignSelf="flex-end" 
+                                mb={1}
+                            >
+                                {helpText}
+                            </Text>
+                        )}
                     </Flex>
                 </Stat>
             </CardBody>
@@ -85,36 +110,41 @@ const PodiumDisplay = ({ scores }) => {
                 <Text color="gray.500">{t("No scores available for today.")}</Text>
             </Center>
         );
-
     }
 
     // Définir les positions du podium et leur style
     const positions = [
-        { place: 1, height: "190px", bgColor: silverBg, borderColor: silverBorder, icon: FaMedal, iconColor: "gray.500" },
-        { place: 0, height: "220px", bgColor: goldBg, borderColor: goldBorder, icon: FaTrophy, iconColor: "yellow.500" },
-        { place: 2, height: "170px", bgColor: bronzeBg, borderColor: bronzeBorder, icon: FaMedal, iconColor: "orange.500" }
+        { place: 1, height: { base: "120px", md: "190px" }, bgColor: silverBg, borderColor: silverBorder, icon: FaMedal, iconColor: "gray.500" },
+        { place: 0, height: { base: "150px", md: "220px" }, bgColor: goldBg, borderColor: goldBorder, icon: FaTrophy, iconColor: "yellow.500" },
+        { place: 2, height: { base: "110px", md: "170px" }, bgColor: bronzeBg, borderColor: bronzeBorder, icon: FaMedal, iconColor: "orange.500" }
     ];
 
     return (
-        <Box mt={6}>
+        <Box px={{ base: 1, md: 4 }}>
             <Heading
                 as="h3"
-                size="lg"
+                size={{ base: "md", md: "lg" }}
                 textAlign="center"
                 bgGradient="linear(to-r, blue.400, purple.500)"
                 bgClip="text"
                 letterSpacing="tight"
+                mb={{ base: 2, md: 4 }}
             >
                 🏆 {t("Daily Podium")}
             </Heading>
 
+            <Flex 
+                justify="center" 
+                align="flex-end" 
+                gap={{ base: 1, sm: 2, md: 3 }} 
+                p={{ base: 1, md: 4 }} 
 
-            <Flex justify="center" align="flex-end" gap={3} p={4} h="280px">
+            >
                 {positions.map((position, index) => {
                     const score = scores[position.place];
                     const place = position.place === 0 ? "place_1" : 
-                                    position.place === 1 ? "place_2" :
-                                    position.place === 2 ? "place_3" : "place_other";
+                                 position.place === 1 ? "place_2" :
+                                 position.place === 2 ? "place_3" : "place_other";
 
                     if (!score) return null;
 
@@ -126,33 +156,46 @@ const PodiumDisplay = ({ scores }) => {
                             spacing={0}
                         >
                             <Box
-                                p={4}
+                                p={{ base: 2, md: 4 }}
                                 bg={position.bgColor}
                                 borderWidth="2px"
                                 borderColor={position.borderColor}
                                 borderRadius="md"
                                 h={position.height}
-                                w="120px"
+                                w={{ base: "80px", md: "120px" }}
                                 boxShadow="lg"
                                 position="relative"
                                 zIndex={10 - position.place}
                                 transition="transform 0.3s"
                                 _hover={{ transform: "translateY(-5px)" }}
                             >
-                                <VStack spacing={1}>
-                                    <Icon as={position.icon} boxSize={6} color={position.iconColor} />
-                                    <Heading size="md" color={textColor}>{t(place, {place : place+1})}</Heading>
-                                    <Text fontWeight="bold" noOfLines={1}>{score.playerName}</Text>
+                                <VStack spacing={{ base: 0.5, md: 1 }}>
+                                    <Icon as={position.icon} boxSize={{ base: 4, md: 6 }} color={position.iconColor} />
+                                    <Heading size={{ base: "xs", md: "md" }} color={textColor}>{t(place, {place : place+1})}</Heading>
+                                    <Text 
+                                        fontWeight="bold" 
+                                        noOfLines={1} 
+                                        fontSize={{ base: "2xs", md: "md" }}
+                                        textAlign="center"
+                                    >
+                                        {score.playerName}
+                                    </Text>
                                     <HStack spacing={1}>
-                                        <Icon as={FaQuestionCircle} color="purple.500" boxSize={3} />
-                                        <Text fontWeight="semibold">{score.score.quiz?.score} pts</Text>
+                                        <Icon as={FaQuestionCircle} color="purple.500" boxSize={{ base: 2, md: 3 }} />
+                                        <Text fontWeight="semibold" fontSize={{ base: "2xs", sm: "xs", md: "sm" }}>{score.score.quiz?.score}{" "} pts</Text>
                                     </HStack>
                                     <HStack spacing={1}>
-                                        <Icon as={FaMusic} color="blue.500" boxSize={3} />
-                                        <Text fontWeight="semibold">{score.score.song?.nGuesses}{" "} {t("words")}</Text>
+                                        <Icon as={FaMusic} color="blue.500" boxSize={{ base: 2, md: 3 }} />
+                                        <Text fontWeight="semibold" fontSize={{ base: "2xs", sm: "xs", md: "sm" }}>{score.score.song?.nGuesses}{" "}{t("words")}</Text>
                                     </HStack>
                                     {score.score.song?.status.includes('hardcore') && (
-                                        <Badge colorScheme="red" borderRadius="full" px={2} mt={2}>
+                                        <Badge 
+                                            colorScheme="red" 
+                                            borderRadius="full" 
+                                            px={2} 
+                                            mt={1} 
+                                            fontSize={{ base: "2xs", sm: "xs", md: "sm" }}
+                                        >
                                             {score.score.song?.status.replace('victory_', '')}
                                         </Badge>
                                     )}
@@ -160,8 +203,8 @@ const PodiumDisplay = ({ scores }) => {
                             </Box>
                             <Box
                                 bg={textColor}
-                                h="10px"
-                                w="110px"
+                                h={{ base: "6px", md: "10px" }}
+                                w={{ base: "80px", md: "120px" }}
                                 borderBottomRadius="md"
                                 opacity={0.3}
                             />
@@ -184,35 +227,43 @@ const PlayersTable = ({ scores }) => {
     }
 
     return (
-        <Box p={4} mt={6} borderRadius="lg" boxShadow="md" bg={bgColor}>
-            <Heading as="h4" size="md" mb={4}>
+        <Box p={{ base: 2, md: 4 }}  borderRadius="lg" boxShadow="md" bg={bgColor} width="100%">
+            <Heading as="h4" size={{ base: "sm", md: "md" }} mb={4}>
                 {t('Other players')}
             </Heading>
             <List spacing={1}>
                 {scores.slice(3).map(({ playerName, score }, index) => (
                     <ListItem
                         key={index}
-                        p={3}
+                        p={{ base: 2, md: 3 }}
                         borderRadius="md"
                         bg={index % 2 === 0 ? oddRowBg : bgColor}
                         transition="all 0.2s"
                         _hover={{ bg: "gray.100" }}
-
                     >
-                        <Flex justifyContent="space-between" align="center">
+                        <Flex 
+                            justifyContent="space-between" 
+                            align="center"
+                            flexDirection={{ base: "column", sm: "row" }}
+                            gap={{ base: 1, sm: 0 }}
+                        >
                             <HStack>
-                                <Text fontWeight="bold" fontSize="sm">{index + 4}.</Text>
-                                <Text>{playerName}</Text>
+                                <Text fontWeight="bold" fontSize={{ base: "xs", md: "sm" }}>{index + 4}.</Text>
+                                <Text fontSize={{ base: "xs", md: "sm" }} noOfLines={1}>{playerName}</Text>
                             </HStack>
-                            <HStack spacing={4} ml={10}>
+                            <HStack 
+                                spacing={{ base: 2, md: 4 }} 
+                                ml={{ base: 0, sm: 10 }}
+                                justifyContent={{ base: "center", sm: "flex-start" }}
+                                width={{ base: "100%", sm: "auto" }}
+                            >
                                 <HStack>
-                                    <Icon as={FaQuestionCircle} color="purple.500" boxSize={3} />
-                                    <Text fontSize="sm">{score.quiz?.score} pts</Text>
+                                    <Icon as={FaQuestionCircle} color="purple.500" boxSize={{ base: 2.5, md: 3 }} />
+                                    <Text fontSize={{ base: "xs", md: "sm" }}>{score.quiz?.score} pts</Text>
                                 </HStack>
                                 <HStack>
-                                    <Icon as={FaMusic} color="blue.500" boxSize={3} />
-                                    <Text fontSize="sm">{score.song?.nGuesses} {t("words")}</Text>
-
+                                    <Icon as={FaMusic} color="blue.500" boxSize={{ base: 2.5, md: 3 }} />
+                                    <Text fontSize={{ base: "xs", md: "sm" }}>{score.song?.nGuesses} {t("words")}</Text>
                                 </HStack>
                             </HStack>
                         </Flex>
@@ -230,10 +281,14 @@ const GameButtons = ({ hasPlayedToday, setIsReady, setDailySongOrQuiz }) => {
     const buttonHoverBgSong = useColorModeValue("blue.600", "blue.700");
     const buttonHoverBgQuiz = useColorModeValue("purple.600", "purple.700");
     const { t } = useTranslation();
+    
     return (
-        <Card w="full" mb={6}>
-            <CardBody>
-                <Flex direction="column" gap={4}>
+        <Card w="full" mb={{base:3, md: 6}}>
+            <CardBody px={{ base: 2, md: 5 }} py={{ base: 3, md: 5 }}>
+                <Flex 
+                    direction="column" 
+                    gap={{ base: 2, md: 4 }}
+                >
                     <Button
                         onClick={() => {
                             setIsReady(false);
@@ -243,29 +298,34 @@ const GameButtons = ({ hasPlayedToday, setIsReady, setDailySongOrQuiz }) => {
                         bg={buttonBgSong}
                         color="white"
                         _hover={{ bg: buttonHoverBgSong }}
-                        size="lg"
-                        height="60px"
-                        leftIcon={<Icon as={FaMusic} />}
+                        size={{ base: "md", sm: "lg" }}
+                        height={{ base: "50px", sm: "60px" }}
+                        leftIcon={<Icon as={FaMusic} boxSize={{ base: 4, sm: 5 }} />}
                         borderRadius="lg"
                         boxShadow="md"
+                        fontSize={{ base: "sm", sm: "md" }}
                     >
                         {t("Today's song")}
                     </Button>
 
-                    <Tooltip label={!hasPlayedToday ? t("Find today's song to unlock the quiz!") : ""} hasArrow>
-
+                    <Tooltip 
+                        label={!hasPlayedToday ? t("Find today's song to unlock the quiz!") : ""} 
+                        hasArrow
+                        placement="bottom"
+                    >
                         <Button
                             onClick={() => setDailySongOrQuiz('quiz')}
                             isDisabled={!hasPlayedToday}
                             bg={buttonBgQuiz}
                             color="white"
                             _hover={{ bg: buttonHoverBgQuiz }}
-                            size="lg"
-                            height="60px"
-                            leftIcon={<Icon as={FaQuestionCircle} />}
+                            size={{ base: "md", sm: "lg" }}
+                            height={{ base: "50px", sm: "60px" }}
+                            leftIcon={<Icon as={FaQuestionCircle} boxSize={{ base: 4, sm: 5 }} />}
                             borderRadius="lg"
                             boxShadow="md"
                             opacity={!hasPlayedToday ? 0.6 : 1}
+                            fontSize={{ base: "sm", sm: "md" }}
                         >
                             {t("Today's quiz")}
                         </Button>
@@ -351,37 +411,55 @@ const UserStatistics = ({ dailyScores }) => {
     }, [dailyScores]);
 
     return (
-        <Box >
+        <Box width="100%">
             <Box
-                p={4}
-                mb={6}
+                p={{ base: 3, md: 4 }}
+                mb={{ base: 4, md: 6 }}
                 borderRadius="lg"
                 bg={useColorModeValue("blue.50", "blue.900")}
                 borderWidth="1px"
                 borderColor={useColorModeValue("blue.200", "blue.600")}
             >
-                <Flex align="center" justify="space-between">
-                    <VStack align="start" spacing={0}>
-                        <Text fontSize="sm" color="gray.500">{t("Streak (Consecutive days)")}</Text>
+                <Flex 
+                    align="center" 
+                    justify="space-between"
+                    direction={{ base: "column", sm: "row" }}
+                    gap={{ base: 2, sm: 0 }}
+                >
+                    <VStack 
+                        align={{ base: "center", sm: "flex-start" }} 
+                        spacing={0}
+                        mb={{ base: 2, sm: 0 }}
+                    >
+                        <Text 
+                            fontSize={{ base: "xs", md: "sm" }} 
+                            color="gray.500"
+                            textAlign={{ base: "center", sm: "left" }}
+                        >
+                            {t("Streak (Consecutive days)")}
+                        </Text>
                         <Flex align="center">
-                            <Icon as={FaFire} color="red.500" mr={2} />
-                            <Heading size="xl">{stats.streak}</Heading>
+                            <Icon as={FaFire} color="red.500" mr={2} boxSize={{ base: 4, md: 5 }} />
+                            <Heading size={{ base: "lg", md: "xl" }}>{stats.streak}</Heading>
                         </Flex>
-                        {/* <Text fontSize="xs" color="gray.500">Record: {stats.maxStreak} jours</Text> */}
                     </VStack>
 
                     <CircularProgress
                         value={(stats.streak / 30) * 100}
                         color="red.400"
                         thickness="12px"
-                        size="80px"
+                        size={{ base: "70px", md: "80px" }}
                     >
                         <CircularProgressLabel fontWeight="bold">{stats.streak}</CircularProgressLabel>
                     </CircularProgress>
                 </Flex>
             </Box>
 
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} p={4}>
+            <SimpleGrid 
+                columns={{ base: 2, md: 2 }} 
+                spacing={{ base: 2, md: 4 }} 
+                p={{ base: 0, md: 4 }}
+            >
                 <StatCard
                     icon={CalendarIcon}
                     title={t("Days played")}
@@ -411,7 +489,6 @@ const UserStatistics = ({ dailyScores }) => {
                     value={stats.avgWords}
                     color="orange"
                 />
-
             </SimpleGrid>
         </Box>
     );
@@ -430,24 +507,29 @@ const PersonalHistory = ({ dailyScores }) => {
     }, [dailyScores]);
 
     const stringDate = (date) => {
-        // 10 mars
         const options = { day: 'numeric', month: 'long' };
-        return new Date(date).toLocaleDateString(navigator.language ?? "fr-FR", options);
+        const dateStr = new Date(date + "T12:00:00").toLocaleDateString(navigator.language ?? "fr-FR", options);
+        return dateStr;
     };
+    
 
     return (
         <Box>
-            <Heading fontSize="2xl" mb={6} textAlign="center" color={textColor}>
+            <Heading 
+                fontSize={{ base: "xl", md: "2xl" }} 
+                mb={{ base: 4, md: 6 }} 
+                textAlign="center" 
+                color={textColor}
+            >
                 📅 {t("Personal History")}
             </Heading>
 
-
             {sortedEntries.length > 0 ? (
-                <List spacing={2}>
+                <List spacing={{ base: 2, md: 3 }}>
                     {sortedEntries.map(([date, entry], index) => (
                         <ListItem
                             key={index}
-                            p={3}
+                            p={{ base: 2, md: 3 }}
                             borderRadius="md"
                             bg={itemBg}
                             borderLeft="4px solid"
@@ -455,35 +537,67 @@ const PersonalHistory = ({ dailyScores }) => {
                             transition="all 0.2s"
                             _hover={{ transform: "translateX(5px)" }}
                         >
-                            <HStack>
-                                <Text textAlign={'center'} fontWeight="bold" color={textColor} mr={5}>{stringDate(date)}</Text>
-                                <HStack spacing={3}>
+                            <Flex 
+                                direction={{ base: "column", md: "row" }}
+                                alignItems={{ base: "flex-start", md: "center" }}
+                                gap={{ base: 2, md: 0 }}
+                            >
+                                <Text 
+                                    fontWeight="bold" 
+                                    color={textColor} 
+                                    mr={{ base: 0, md: 5 }}
+                                    fontSize={{ base: "sm", md: "md" }}
+                                >
+                                    {stringDate(date)}
+                                </Text>
+                                <Flex 
+                                    wrap="wrap"
+                                    gap={{ base: 1, md: 3 }}
+                                    mt={{ base: 1, md: 0 }}
+                                >
                                     <Badge
                                         colorScheme={entry.song?.status.includes('hardcore') ? "red" : "green"}
                                         borderRadius="full"
                                         px={2}
+                                        fontSize={{ base: "2xs", md: "xs" }}
                                     >
                                         {entry.song?.status.replace('victory_', '')}
                                     </Badge>
-                                    <Badge colorScheme="blue" borderRadius="full" px={2}>
+                                    <Badge 
+                                        colorScheme="blue" 
+                                        borderRadius="full" 
+                                        px={2}
+                                        fontSize={{ base: "2xs", md: "xs" }}
+                                    >
                                         <HStack spacing={1}>
-                                            <Icon as={FaMusic} boxSize={3} />
+                                            <Icon as={FaMusic} boxSize={{ base: 2, md: 3 }} />
                                             <Text>{entry.song?.nGuesses}{" "}{t("words")}</Text>
                                         </HStack>
                                     </Badge>
-                                    <Badge colorScheme="purple" borderRadius="full" px={2}>
+                                    <Badge 
+                                        colorScheme="purple" 
+                                        borderRadius="full" 
+                                        px={2}
+                                        fontSize={{ base: "2xs", md: "xs" }}
+                                    >
                                         <HStack spacing={1}>
-                                            <Icon as={FaQuestionCircle} boxSize={3} />
+                                            <Icon as={FaQuestionCircle} boxSize={{ base: 2, md: 3 }} />
                                             <Text>{entry.quiz?.score} pts</Text>
                                         </HStack>
                                     </Badge>
-                                </HStack>
-                            </HStack>
+                                </Flex>
+                            </Flex>
                         </ListItem>
                     ))}
                 </List>
             ) : (
-                <Text color="gray.500" textAlign="center">{t("No history available.")}</Text>
+                <Text 
+                    color="gray.500" 
+                    textAlign="center" 
+                    fontSize={{ base: "sm", md: "md" }}
+                >
+                    {t("No history available.")}
+                </Text>
             )}
         </Box>
     );
@@ -516,50 +630,65 @@ const QuizTab = ({ dailyScores, setDailySongOrQuiz, setIsReady, dailyTotalPoints
         });
         return () => unsubscribe();
     }, [today]);
-
     return (
-        <Box p={{ base: 2, md: 6 }} borderRadius="lg" bg={bgColor}>
+        <Box p={{ base: 1, md: 6 }} borderRadius="lg" bg={bgColor}>
             <Tabs variant="enclosed" colorScheme="blue" isFitted>
-                <TabList bg={tabListBg} borderRadius="xl" p={1} mb={4}>
+                <TabList 
+                    bg={tabListBg} 
+                    borderRadius="xl" 
+                    p={{ base: 0.5, md: 1 }} 
+                    mb={{ base: 2, md: 4 }}
+                    fontSize={{ base: "xs", md: "md" }}
+                >
                     <Tab
                         _selected={{ bg: activeTabBg, color: "blue.600", fontWeight: "bold" }}
                         borderRadius="lg"
-                        py={3}
+                        py={{ base: 2, md: 3 }}
+                        px={{ base: 1, md: 3 }}
                     >
-                        <HStack>
-                            <Icon as={FaHome} />
-                            <Text>{t("Home")}</Text>
+                        <HStack spacing={{ base: 1, md: 2 }}>
+                            <Icon as={FaHome} boxSize={{ base: 3, md: 4 }} />
+                            <Text display={{ base: "none", sm: "block" }}>{t("Home")}</Text>
                         </HStack>
                     </Tab>
                     <Tab
                         _selected={{ bg: activeTabBg, color: "blue.600", fontWeight: "bold" }}
                         borderRadius="lg"
-                        py={3}
+                        py={{ base: 2, md: 3 }}
+                        px={{ base: 1, md: 3 }}
                     >
-                        <HStack>
-                            <Icon as={FaTrophy} />
-                            <Text>Podium</Text>
+                        <HStack spacing={{ base: 1, md: 2 }}>
+                            <Icon as={FaTrophy} boxSize={{ base: 3, md: 4 }} />
+                            <Text display={{ base: "none", sm: "block" }}>Podium</Text>
                         </HStack>
                     </Tab>
                     <Tab
                         _selected={{ bg: activeTabBg, color: "blue.600", fontWeight: "bold" }}
                         borderRadius="lg"
-                        py={3}
+                        py={{ base: 2, md: 3 }}
+                        px={{ base: 1, md: 3 }}
                     >
-                        <HStack>
-                            <Icon as={FaHistory} />
-                            <Text>{t("History")}</Text>
+                        <HStack spacing={{ base: 1, md: 2 }}>
+                            <Icon as={FaHistory} boxSize={{ base: 3, md: 4 }} />
+                            <Text display={{ base: "none", sm: "block" }}>{t("History")}</Text>
                         </HStack>
                     </Tab>
                 </TabList>
 
-                <TabPanels bg={tabBg} borderRadius="xl" boxShadow="xl" p={4}>
+                <TabPanels bg={tabBg} borderRadius="xl" boxShadow="xl" p={{ base: 2, md: 4 }}>
                     {/* Onglet 1: Accueil avec boutons et statistiques */}
-                    <TabPanel>
-                        <VStack spacing={6}>
-                            <Heading as="h3" size="lg" mb={2} textAlign="center">
+                    <TabPanel px={{ base: 1, md: 4 }}>
+                        <VStack spacing={{ base: 3, md: 6 }}>
+                            <Heading as="h3" size={{ base: "md", md: "lg" }} mb={2} textAlign="center">
                                 {t("Total score: ")}
-                                <Badge colorScheme="blue" ml={2} fontSize={"2xl"} transform={"translateY(-2px)"}> {dailyTotalPoints} pts </Badge>
+                                <Badge 
+                                    colorScheme="blue" 
+                                    ml={2} 
+                                    fontSize={{ base: "lg", md: "2xl" }} 
+                                    transform={"translateY(-2px)"}
+                                >
+                                    {dailyTotalPoints} pts
+                                </Badge>
                             </Heading>
 
                             <GameButtons
@@ -568,25 +697,29 @@ const QuizTab = ({ dailyScores, setDailySongOrQuiz, setIsReady, dailyTotalPoints
                                 setDailySongOrQuiz={setDailySongOrQuiz}
                             />
 
-                            <Heading as="h3" size="md" mb={2} alignSelf="flex-start">
+                            <Heading 
+                                as="h3" 
+                                size={{ base: "sm", md: "md" }} 
+                                mb={2} 
+                                alignSelf="flex-start"
+                            >
                                 📊 {t("Your Statistics")}
                             </Heading>
-
 
                             <UserStatistics dailyScores={dailyScores} />
                         </VStack>
                     </TabPanel>
 
                     {/* Onglet 2: Podium */}
-                    <TabPanel>
-                        <VStack spacing={6}>
+                    <TabPanel px={{ base: 0, md: 4 }}>
+                        <VStack spacing={{ base: 3, md: 6 }}>
                             <PodiumDisplay scores={scores} />
                             <PlayersTable scores={scores} />
                         </VStack>
                     </TabPanel>
 
                     {/* Onglet 3: Historique */}
-                    <TabPanel>
+                    <TabPanel px={{ base: 1, md: 4 }}>
                         <PersonalHistory dailyScores={dailyScores} />
                     </TabPanel>
                 </TabPanels>

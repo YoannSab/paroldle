@@ -90,6 +90,7 @@ const LyricsComponent = ({
   }, [song, index]); // Voir pour ajouter gameMode
 
   useEffect(() => {
+    if (gameModeRef.current === "battle") return;
     if (isReady && song && index !== null && gameModeRef.current !== "") {
       if (gameModeRef.current !== "battle") {
         localStorage.setItem(`paroldle_${gameModeRef.current}_found_${index}`, JSON.stringify(found));
@@ -99,6 +100,7 @@ const LyricsComponent = ({
   }, [found, song]);
 
   useEffect(() => {
+    if (gameModeRef.current === "battle") return;
     if (isReady && song && index !== null && gameModeRef.current !== "") {
       if (gameModeRef.current !== "battle") {
         localStorage.setItem(
@@ -111,8 +113,8 @@ const LyricsComponent = ({
   }, [partial]);
 
 
-
   useEffect(() => {
+    if (gameModeRef.current === "battle") return;
     if (isReady && song && index !== null && gameModeRef.current !== "") {
       if (gameModeRef.current !== "battle") {
         localStorage.setItem(`paroldle_${gameMode}_clues_${index}`, clues);
@@ -121,6 +123,7 @@ const LyricsComponent = ({
   }, [clues]);
 
   useEffect(() => {
+    if (gameModeRef.current === "battle") return;
     if (isReady && song && index !== null && gameModeRef.current !== "") {
       if (gameModeRef.current !== "battle") {
         localStorage.setItem(`paroldle_${gameMode}_semanticPartial_${index}`, JSON.stringify(semanticPartial));
@@ -256,7 +259,6 @@ const LyricsComponent = ({
         setGameState("victory_normal");
       }
     } 
-    
 
   }, [found.title, found.lyrics, found.artist, gameState, title.length, lyrics.length, artist.length, isReady]);
 
@@ -327,10 +329,6 @@ const LyricsComponent = ({
   const leftColumn = lyricLines.slice(0, midLine);
   const rightColumn = lyricLines.slice(midLine);
 
-  useEffect(() => {
-    console.log("otherPlayersInfo", otherPlayersInfo);
-  }, [otherPlayersInfo]);
-
   if (index === null) {
     return (
       <Box minHeight={300}>
@@ -351,63 +349,59 @@ const LyricsComponent = ({
   }
 
   return (
-    <Box position="relative" p={4} fontFamily="Montserrat, sans-serif">
-      <Box position="absolute" top={4} left={4} zIndex={10}>
+    <Box position="relative" p={{ base: 2, md: 4 }} fontFamily="Montserrat, sans-serif">
+      <Box position="absolute" top={{ base: 2, md: 4 }} left={{ base: 2, md: 4 }} zIndex={10}>
         <Flex
           align="center"
-          gap={4}
+          gap={{ base: 1, md: 4 }}
           bg={colors.guessBg}
-          p={3}
+          p={{ base: 1, md: 3 }}
           borderRadius="md"
           boxShadow="md"
+          fontSize={{ base: "xs", md: "md" }}
         >
-
-          <Text fontWeight="bold" fontSize="md">
+          <Text fontWeight="bold" fontSize={{ base: "xs", md: "md" }}>
             {t("Syntactic")}
           </Text>
           <Box display="flex" alignItems="center">
-            {/* Fond derrière le switch */}
             <Box
-              w="35px" // Largeur du fond
-              h="20px" // Hauteur du fond
-              bg={showSemanticPartial ? "teal.500" : "red.500"} // Couleur activé/désactivé
+              w={{ base: "25px", md: "35px" }}
+              h={{ base: "15px", md: "20px" }}
+              bg={showSemanticPartial ? "teal.500" : "red.500"}
               borderRadius="full"
               position="absolute"
               transition="background-color 0.2s ease-in-out"
             />
-
-            {/* Le Switch avec position relative pour qu'il soit devant */}
             <Switch
               isChecked={showSemanticPartial}
               onChange={() => setShowSemanticPartial((prev) => !prev)}
-              size="md"
+              size={{ base: "sm", md: "md" }}
               sx={{
                 "span.chakra-switch__track": {
-                  bg: "transparent", // Rendre le fond du switch transparent
+                  bg: "transparent",
                 },
                 "span.chakra-switch__thumb": {
-                  bg: "white", // Couleur du bouton
+                  bg: "white",
                 },
               }}
             />
           </Box>
-
-          <Text fontWeight="bold" fontSize="md">
+          <Text fontWeight="bold" fontSize={{ base: "xs", md: "md" }}>
             {t("Semantic")}
           </Text>
         </Flex>
       </Box>
-      <Box position="absolute" top={4} right={4} zIndex={10}>
+      <Box position="absolute" top={{ base: 1, md: 2 }} right={{ base: 2, md: 4 }} zIndex={10}>
         <Flex
           align="center"
-          gap={4}
+          gap={{ base: 1, md: 4 }}
           bg={colors.guessBg}
-          p={3}
+          p={{ base: 1, md: 3 }}
           borderRadius="md"
           boxShadow="md"
+          fontSize={{ base: "xs", md: "md" }}
         >
-
-          <Text fontWeight="bold" fontSize="md">
+          <Text fontWeight="bold" fontSize={{ base: "xs", md: "md" }}>
             {foundLyricsAlpha} / {totalLyricsAlpha}
           </Text>
           <Box position="relative">
@@ -415,7 +409,7 @@ const LyricsComponent = ({
               icon={<FaLightbulb />}
               onClick={handleHelp}
               variant="outline"
-              size="md"
+              size={{ base: "xs", md: "md" }}
               colorScheme="teal"
               aria-label="Obtenir un indice"
               isDisabled={clues <= 0}
@@ -427,34 +421,34 @@ const LyricsComponent = ({
               bg="teal.500"
               color="white"
               borderRadius="full"
-              w={5}
-              h={5}
+              w={{ base: 3, md: 5 }}
+              h={{ base: 3, md: 5 }}
               display="flex"
               alignItems="center"
               justifyContent="center"
-              fontSize="xs"
+              fontSize="2xs"
             >
               {clues}
             </Box>
           </Box>
           {clues === 0 && (
             <Button
-              size="sm"
+              size="xs"
               bgColor={colors.tealButtonBg}
               _hover={{ bgColor: colors.tealButtonBgHover }}
               onClick={handleBuyClues}
               isDisabled={trophies < CLUE_COST_TROPHIES}
               variant="solid"
+              fontSize={{ base: "2xs", sm: "xs", md: "sm" }}
             >
-              {t("Buy")}{" "} {N_CLUE_BUY} 💡{" "} {t("for")}{" "} {CLUE_COST_TROPHIES}🏆
+              {t("Buy")}{" "} {N_CLUE_BUY} 💡{" "}{CLUE_COST_TROPHIES}🏆
             </Button>
           )}
-
         </Flex>
       </Box>
 
-      <Box mb={2} textAlign="center" mt={20}>
-        <Heading as="h1" fontSize="4xl">
+      <Box mb={2} textAlign="center" mt={{ base: 14, md: 20 }}>
+        <Heading as="h1" fontSize={{ base: "xl", sm: "2xl", md: "4xl" }}>
           {title.map((word, i) => (
             <LyricWords
               key={`title-${i}`}
@@ -470,8 +464,8 @@ const LyricsComponent = ({
         </Heading>
       </Box>
 
-      <Box mb={4} textAlign="center">
-        <Heading as={"h2"} fontSize="2xl">
+      <Box mb={3} textAlign="center">
+        <Heading as={"h2"} fontSize={{ base: "lg", sm: "xl", md: "2xl" }}>
           {artist.map((word, i) => 
             <LyricWords
               key={`artist-${i}`}
@@ -487,10 +481,10 @@ const LyricsComponent = ({
         </Heading>
       </Box>
 
-      {/* Affichage de l'année de sortie de la chanson accompagnée d'un bouton pour la débloquer */}
+      {/* Affichage de l'année de sortie de la chanson */}
       {song && gameModeRef.current !== 'daily' &&
-        <Box textAlign="center" mb={4}>
-          <Heading as="h3" fontSize="xl">
+        <Box textAlign="center" mb={2}>
+          <Heading as="h3" fontSize={{ base: "md", sm: "lg", md: "xl" }}>
             <LyricWords
               word={song.year.toString()}
               found={true}
@@ -500,10 +494,10 @@ const LyricsComponent = ({
         </Box>
       }
       {!gameState.startsWith("guessing") && song?.video_id && (
-        <Box mt={4} mb={4} mx="auto" maxW="300px">
+        <Box mt={3} mb={3} mx="auto" maxW={{ base: "250px", md: "300px" }}>
           <iframe
-            width="300"
-            height="170"
+            width="100%"
+            height={{ base: "150px", md: "170px" }}
             src={`https://www.youtube.com/embed/${song.video_id}?autoplay=${autoplay ? 1 : 0}`}
             allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
@@ -512,8 +506,17 @@ const LyricsComponent = ({
         </Box>
       )}
 
-      <Flex justifyContent="center" mt={4}>
-        <Box textAlign="left" pr={100}>
+      <Flex 
+        justifyContent="center" 
+        mt={3} 
+        flexDirection={{ base: "column", md: "row" }}
+      >
+        <Box 
+          textAlign={{ base: "center", md: "left" }}
+          pr={{ base: 2, md: 4 }} 
+          fontSize={{ base: "xs", sm: "sm", md: "md" }}
+          mb={{ base: 4, md: 0 }}
+        >
           {leftColumn.map((line, lineIndex) => (
             <Box key={`left-line-${lineIndex}`}>
               {line.map((item, wordIndex) => (
@@ -532,7 +535,11 @@ const LyricsComponent = ({
           ))}
         </Box>
 
-        <Box textAlign="left" pl={2}>
+        <Box 
+          textAlign={{ base: "center", md: "left" }}
+          pl={{ base: 2, md: 4 }}
+          fontSize={{ base: "xs", sm: "sm", md: "md" }}
+        >
           {rightColumn.map((line, lineIndex) => (
             <Box key={`right-line-${lineIndex}`}>
               {line.map((item, wordIndex) => (
@@ -551,6 +558,7 @@ const LyricsComponent = ({
           ))}
         </Box>
       </Flex>
+
     </Box>
   );
 };
