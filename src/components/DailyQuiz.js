@@ -315,7 +315,7 @@ const WordByWordLyricsInput = memo(({ correctAnswers, labels, onComplete, userAn
 
             if (titlesState.every(titleWords => titleWords.every(item => item.found))) {
                 const pointsWon = POINTS_CONFIG.songs.perSong
-                onComplete({ titlesState, isFinished: true }, pointsWon, isVictorious === undefined ? (isVictorious ? 1 : -2) : 1);
+                onComplete({ titlesState, isFinished: true }, pointsWon, isVictorious !== undefined ? (isVictorious ? 1 : -2) : 1);
             }
             else {
                 const pointsWon = POINTS_CONFIG.songs.perSong
@@ -775,15 +775,17 @@ const DailyQuiz = ({ songId, dailyScores, setDailyScores, totalPoints, setTotalP
     // Gestion de la réponse d'une question
     const handleAnswer = useCallback((questionIndex, answer, points, status) => {
         setAnswers(prev => ({ ...prev, [questionIndex]: answer }));
-        if (answer.selectedTracks && !answer.artistGuesses) return;
+        
+        const newTotalPoints = totalPoints + Math.max(points, 0);
+        setTotalPoints(newTotalPoints);
+
+        console.log("Question", questionIndex, "répondu avec", answer, "pour", points, "points", "status", status);
+
+        if (status === 0) return;
         setCompletedQuestions(prev => ({
             ...prev,
             [questionIndex]: status
         }));
-        const newTotalPoints = totalPoints + Math.max(points, 0);
-        setTotalPoints(newTotalPoints);
-        console.log("Question", questionIndex, "répondu avec", answer, "pour", points, "points", "status", status);
-        if (status === 0) return;
 
         if (currentQuestion < quiz.questions.length - 1) {
             setLastUnlockedQuestion(prev => {
