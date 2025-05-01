@@ -984,8 +984,13 @@ const App = () => {
               size={isMobile ? "sm" : "md"}
               bgColor={colors.orangeButtonBg}
               _hover={{ bgColor: colors.orangeButtonBgHover }}
-              onClick={handleAbandon}
-              mt={isMobile ? 1 : 0}
+              onClick={() => {
+                const confirmed = window.confirm(t("Are you sure you want to give up?"));
+                if (confirmed) {
+                  handleAbandon();
+                }
+              }}
+              mt={{ base: 1, xl: 0 }}
             >
               {t("Give up")} {gameState === "guessing_hardcore" ? " " + t("HC") : ""}
             </Button>
