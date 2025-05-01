@@ -43,19 +43,19 @@ const ProfilePictureModal = ({selectedImage, setSelectedImage}) => {
                 onClick={onOpen}
             />
 
-            <Modal isOpen={isOpen} onClose={onClose} size={{ base: "xs", sm: "md" }}>
+            <Modal isOpen={isOpen} onClose={onClose} size={{ base: "xs", xl: "md" }}>
                 <ModalOverlay />
                 <ModalContent mx={2}>
-                    <ModalHeader fontSize={{ base: "md", sm: "xl" }}>Select Profile Picture</ModalHeader>
+                    <ModalHeader fontSize={{ base: "md", xl: "xl" }}>Select Profile Picture</ModalHeader>
                     <ModalCloseButton />
                     <ModalBody>
-                        <Grid templateColumns={{ base: "repeat(4, 1fr)", sm: "repeat(4, 1fr)", md: "repeat(5, 1fr)" }} gap={2}>
+                        <Grid templateColumns={{ base: "repeat(4, 1fr)", sm: "repeat(4, 1fr)", xl: "repeat(5, 1fr)" }} gap={2}>
                             {images.map((image, index) => (
                                 <Image
                                     key={index}
                                     src={`/characters/${image}.png`}
                                     alt={`Profile ${index}`}
-                                    boxSize={{ base: '50px', sm: '80px', md: '100px' }}
+                                    boxSize={{ base: '50px', sm: '70px', xl: '100px' }}
                                     objectFit="cover"
                                     cursor="pointer"
                                     _hover={{ transform: 'scale(1.1)' }}

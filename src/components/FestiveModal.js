@@ -1,15 +1,14 @@
-import React from 'react';
+import React, {memo} from 'react';
 import { 
     Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, 
     ModalBody, Text, Flex, Icon, useBreakpointValue
 } from '@chakra-ui/react';
 import { FaMedal, FaMusic, FaFire, FaSadTear, FaTimesCircle, FaBalanceScale } from 'react-icons/fa';
 import Confetti from 'react-confetti';
-import { useWindowSize } from 'react-use';
 import { useTranslation } from 'react-i18next';
 
-const FestiveModal = ({ isOpen, onClose, state }) => {
-    const { width, height } = useWindowSize();
+const FestiveModal = memo(({ isOpen, onClose, state }) => {
+
     const { t } = useTranslation();
     
     // Responsive sizes
@@ -18,10 +17,10 @@ const FestiveModal = ({ isOpen, onClose, state }) => {
     const fontSize = useBreakpointValue({ base: "lg", sm: "xl", md: "2xl" });
     const bodyFontSize = useBreakpointValue({ base: "md", sm: "xl" });
     const modalSize = useBreakpointValue({ base: "xs", sm: "sm" });
-
+    console.log('FestiveModal Rerendered');
     return (
         <>
-            {isOpen && state.includes("victory") && <Confetti width={width} height={height} />}
+            {isOpen && state.includes("victory") && <Confetti width={window.innerWidth} height={window.innerHeight} />}
         
             <Modal isOpen={isOpen} onClose={onClose} size={modalSize} isCentered>
                 <ModalOverlay />
@@ -104,6 +103,6 @@ const FestiveModal = ({ isOpen, onClose, state }) => {
             </Modal>
         </>
     );
-};
+});
 
 export default FestiveModal;

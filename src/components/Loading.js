@@ -8,6 +8,6 @@ export default function Loading(){ return (
         speed='0.65s'
         emptyColor='cyan.200'
         color='cyan.500'
-        size={{base: 'md', md: 'lg', lg: 'xl'}}
+        size={['md', 'lg', 'xl']}
     /></Center>
 )};

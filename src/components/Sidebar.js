@@ -93,7 +93,7 @@ const Sidebar = ({
       .catch((err) => console.error("Erreur lors du chargement des chansons:", err));
   }, []);
 
-    
+
 
   useEffect(() => {
     if (isMobile) return;
@@ -294,7 +294,7 @@ const Sidebar = ({
   const isSelector = useMemo(() => sortedPlayers[0] === playerName, [sortedPlayers, playerName]);
 
   return (
-    <Box mx="auto"  w="full" pb={{base: 5, xl: 0}}>
+    <Box mx="auto" w="full" pb={{ base: 5, xl: 0 }}>
       {/* Partie supérieure commune (GuessList, titre, etc.) */}
       <Box
         bg={colors.guessListBg}
@@ -325,10 +325,15 @@ const Sidebar = ({
           onChange={handleOnChange}
           isFitted
         >
-          {/* Barre d'onglets - 2x2 grid for mobile, row for desktop */}
-          <TabList mb={3} fontSize={{ base: "xs", xl: "md" }}>
-            <Flex direction={{ base: "column", xl: "row" }} width="full">
-              <Flex mb={{ base: 2, xl: 0 }} width="full">
+          <TabList mb={3} fontSize={{ base: "xs", md: "sm", xl: "md" }}>
+            <Flex
+              wrap="wrap"
+              justify="center"
+              width="full"
+              gap={2}
+              mx="auto"
+            >
+              <Flex width={ "auto" }>
                 <Tab
                   _selected={{ bg: colors.tabsColors[0] }}
                   _hover={{ bg: colors.tabsColors[0] }}
@@ -338,16 +343,16 @@ const Sidebar = ({
                   display="flex"
                   alignItems="center"
                   justifyContent="center"
-                  mr={{ base: 1, xl: 1 }}
-                  mb={{ base: 0, xl: 0 }}
-                  py={{ base: 1, xl: 2 }}
                   flexGrow={1}
+                  minWidth="0"
                   borderWidth={2}
                 >
-                  <Icon as={MdToday} mr={{ base: 1, xl: 2 }} />
+                  <Icon as={MdToday} mr={2} />
                   <Box display={{ base: "none", sm: "block" }}>{t("Daily")}</Box>
                 </Tab>
+              </Flex>
 
+              <Flex width={"auto" }>
                 <Tab
                   _selected={{ bg: colors.tabsColors[1] }}
                   _hover={{ bg: colors.tabsColors[1] }}
@@ -357,16 +362,16 @@ const Sidebar = ({
                   display="flex"
                   alignItems="center"
                   justifyContent="center"
-                  py={{ base: 1, xl: 2 }}
                   flexGrow={1}
+                  minWidth="0"
                   borderWidth={2}
                 >
-                  <Icon as={FaMusic} mr={{ base: 1, xl: 2 }} />
+                  <Icon as={FaMusic} mr={2} />
                   <Box display={{ base: "none", sm: "block" }}>{t("Classic")}</Box>
                 </Tab>
               </Flex>
 
-              <Flex width="full">
+              <Flex width={"auto" }>
                 <Tab
                   _selected={{ bg: colors.tabsColors[2] }}
                   _hover={{ bg: colors.tabsColors[2] }}
@@ -376,15 +381,16 @@ const Sidebar = ({
                   display="flex"
                   alignItems="center"
                   justifyContent="center"
-                  mr={{ base: 1, xl: 1 }}
-                  py={{ base: 1, xl: 2 }}
                   flexGrow={1}
+                  minWidth="0"
                   borderWidth={2}
                 >
-                  <Icon as={PiMicrophoneStageDuotone} mr={{ base: 1, xl: 2 }} />
-                  <Box display={{ base: "none", sm: "block" }}>{t('NOPLP')}</Box>
+                  <Icon as={PiMicrophoneStageDuotone} mr={2} />
+                  <Box display={{ base: "none", sm: "block" }} fontSize="md">{t('NOPLP')}</Box>
                 </Tab>
-                
+              </Flex>
+
+              <Flex width={"auto" }>
                 <Tab
                   _selected={{ bg: colors.tabsColors[3] }}
                   _hover={{ bg: colors.tabsColors[3] }}
@@ -394,25 +400,27 @@ const Sidebar = ({
                   display="flex"
                   alignItems="center"
                   justifyContent="center"
-                  py={{ base: 1, xl: 2 }}
                   flexGrow={1}
+                  minWidth="0"
                   borderWidth={2}
                 >
-                  <Icon as={GiBloodySword} mr={{ base: 1, xl: 2 }} />
+                  <Icon as={GiBloodySword} mr={2} />
                   <Box display={{ base: "none", sm: "block" }}>{t('Battle')}</Box>
                 </Tab>
               </Flex>
             </Flex>
           </TabList>
-          
+
+
           <HStack spacing={{ base: 2, xl: 4 }} justifyContent="center">
             <Button
               colorScheme={isConnected ? 'green' : 'purple'}
               onClick={() => setRtcModalOpen(true)}
               leftIcon={<Icon as={isConnected ? FaUserCheck : FaUserPlus} />}
-              size={{ base: "xs", xl: "sm" }}
+              size={{ base: "sm", md: "md", xl: "lg" }}
               variant="solid"
-              px={{ base: 2, xl: 4 }}
+              p={{ base: 2, xl: 4 }}
+              m={{ base: 2, xl: 4 }}
             >
               {isConnected ? t('Connected') : t('Join a room')}
             </Button>
@@ -442,10 +450,10 @@ const Sidebar = ({
               {sideBarLoading ? (
                 <Loading />
               ) : (
-                <QuizTab 
-                  dailyScores={dailyScores} 
-                  setDailySongOrQuiz={setDailySongOrQuiz} 
-                  setIsReady={setIsReady} 
+                <QuizTab
+                  dailyScores={dailyScores}
+                  setDailySongOrQuiz={setDailySongOrQuiz}
+                  setIsReady={setIsReady}
                   dailyTotalPoints={dailyTotalPoints}
                 />
               )}
@@ -466,7 +474,7 @@ const Sidebar = ({
                     setIndex={setIndex}
                     getRequirementsForSong={getRequirementsForSong}
                     progressValue={progressValue}
-                    inProgressSongs={inProgressSongs} 
+                    inProgressSongs={inProgressSongs}
                   />
                   <Filters
                     availableLanguages={availableLanguages}
@@ -481,7 +489,7 @@ const Sidebar = ({
                     filterAvailable={filterAvailable}
                     setFilterAvailable={setFilterAvailable}
                     selectedStatuses={selectedStatuses}
-                    setSelectedStatuses={setSelectedStatuses} 
+                    setSelectedStatuses={setSelectedStatuses}
                   />
                 </>
               )}
@@ -523,7 +531,7 @@ const Sidebar = ({
                     fightIndex={fightIndex}
                     foundSongs={foundSongs}
                     gameState={gameState}
-                    setWantsTie={setWantsTie} 
+                    setWantsTie={setWantsTie}
                   />
                   {isSelector && (
                     <Filters
@@ -540,7 +548,7 @@ const Sidebar = ({
                       filterAvailable={filterAvailable}
                       setFilterAvailable={setFilterAvailable}
                       selectedStatuses={selectedStatuses}
-                      setSelectedStatuses={setSelectedStatuses} 
+                      setSelectedStatuses={setSelectedStatuses}
                     />
                   )}
                 </>

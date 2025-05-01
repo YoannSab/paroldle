@@ -1,8 +1,8 @@
 import seedrandom from 'seedrandom';
 
 function getDeterministicRandom() {
-  const seed = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
-  return seedrandom(seed);
+    const seed = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+    return seedrandom(seed);
 }
 
 const rng = getDeterministicRandom();
@@ -30,21 +30,21 @@ function getRandomYears(correctYear, count) {
     years.add(parseInt(correctYear));
     const currentYear = new Date().getFullYear();
     const oldestYear = 1800; // Année de référence minimale
-    
+
     function getDynamicOffset(year) {
         const maxOffset = 30;
         const minOffset = 2;
         const rangeFactor = (currentYear - year) / Math.pow((currentYear - oldestYear), 0.80);
         return Math.max(minOffset, Math.ceil(maxOffset * rangeFactor));
     }
-    
+
     while (years.size < count) {
         const offset = getDynamicOffset(correctYear);
         const randomOffset = Math.floor(rng() * (offset * 2 + 1)) - offset;
         const randomYear = parseInt(correctYear) + randomOffset;
         years.add(Math.min(randomYear, currentYear));
     }
-    
+
     return shuffleArray(Array.from(years));
 }
 
@@ -143,33 +143,36 @@ async function generateQuiz(songId) {
     quiz.questions.push(topSongsQuestion);
 
     // Question sur l'intrus (version améliorée)
-    const similarArtists = artist.similar_artists
-        .filter(name => dataArtists[name]) // Filtre les artistes existants
-        .slice(0, 2);
 
-    // Création des intrus avec leurs artistes
-    const intruders = similarArtists.map(name => ({
-        // random least popular song
-        track: dataArtists[name].top_tracks.slice(-2)[0],
-        artist: name
-    }));
+    const similarArtists = artist.similar_artists?.filter(name => dataArtists[name])?.slice(0, 2);
 
-    // Sélection de 3 chansons légitimes
-    const originalTracks = artist.top_tracks
-        .filter(t => !intruders.some(i => i.track === t))
-        .reverse()
-        .slice(0, 3);
+    if (!similarArtists || similarArtists.length < 2) {
+        console.log(`Not enough similar artists found for ${artist.name}`);
+    } else {
+        // Création des intrus avec leurs artistes
+        const intruders = similarArtists.map(name => ({
+            // random least popular song
+            track: dataArtists[name].top_tracks.slice(-2)[0],
+            artist: name
+        }));
 
-    const intruderOptions = shuffleArray([...originalTracks, ...intruders.map(i => i.track)]);
+        // Sélection de 3 chansons légitimes
+        const originalTracks = artist.top_tracks
+            .filter(t => !intruders.some(i => i.track === t))
+            .reverse()
+            .slice(0, 3);
 
-    const intruderQuestion = {
-        type: "intruder",
-        question: "Find the two intruder songs",
-        correctAnswers: intruders.map(i => ({ track: i.track, artist: i.artist })),
-        options: intruderOptions,
-        explanation: "Les intrus proviennent de : " + intruders.map(i => `${i.track} (${i.artist})`).join(" et ")
-    };
-    quiz.questions.push(intruderQuestion);
+        const intruderOptions = shuffleArray([...originalTracks, ...intruders.map(i => i.track)]);
+
+        const intruderQuestion = {
+            type: "intruder",
+            question: "Find the two intruder songs",
+            correctAnswers: intruders.map(i => ({ track: i.track, artist: i.artist })),
+            options: intruderOptions,
+            explanation: "Les intrus proviennent de : " + intruders.map(i => `${i.track} (${i.artist})`).join(" et ")
+        };
+        quiz.questions.push(intruderQuestion);
+    }
 
     return { quiz, songId };
 }
@@ -181,7 +184,7 @@ async function generateDateBasedIndex() {
 
     // Sélectionner un index aléatoire
     const filteredSongs = Object.keys(songs).filter(id => Object.hasOwn(artists, songs[id].author));
-    
+
     // random choice of song
     const songId = filteredSongs[Math.floor(rng() * filteredSongs.length)];
 
