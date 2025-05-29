@@ -127,8 +127,10 @@ const NOPLP = memo(({ allSongs, setIndex, foundSongs, index, inProgressSongs }) 
     const lowerQuery = searchQuery.toLowerCase();
     return Object.values(allSongs || {}).filter(
       (song) =>
-        (song.title && song.title.toLowerCase().includes(lowerQuery)) ||
-        (song.author && song.author.toLowerCase().includes(lowerQuery))
+        ((song.title && song.title.toLowerCase().includes(lowerQuery)) ||
+        (song.author && song.author.toLowerCase().includes(lowerQuery)) ||
+        (song.style && song.style.toLowerCase().includes(lowerQuery))) &&
+        !(foundSongs && Object.hasOwn(foundSongs, song.index))
     );
   }, [searchQuery, allSongs]);
 
