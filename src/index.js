@@ -1,12 +1,17 @@
 import { ChakraProvider } from '@chakra-ui/react';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import App from './App';
-import './compare_words'
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import App from './components/App';
+import './i18n';
 
 ReactDOM.render(
   <ChakraProvider>
-    <App />
+    <Router>
+      <Routes>
+        <Route path="/" element={<App />} />
+      </Routes>
+    </Router>
   </ChakraProvider>,
   document.getElementById('root')
 );

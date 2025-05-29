@@ -1,6 +1,6 @@
 // lyricsUtils.js
 import { word_to_lemme } from './word_to_lemme_thresh_1.js';
-
+import { french_synonyms } from './french_synonyms.js';
 /**
  * Transforme un texte en une liste de tokens (mots, ponctuation et retours à la ligne).
  */
@@ -77,8 +77,12 @@ export const findBreakPoint = (lyrics) => {
  * @returns {string} - La chaîne sans diacritiques.
  */
 export function removeDiacritics(str) {
-  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return str
+    .replace(/œ/g, "oe") // Remplace "œ" par "oe"
+    .normalize("NFD") // Décompose les caractères accentués
+    .replace(/[\u0300-\u036f]/g, ""); // Supprime les diacritiques
 }
+
 
 /**
  * Calcule la distance de Levenshtein entre deux chaînes.
@@ -149,45 +153,46 @@ export const matchWord = (guess, word, lang) => {
 
   // 1. Comparaison directe (avec ou sans diacritiques)
   if (guessLower === wordLower || guessNoAccent === wordNoAccent) {
-    return 1;
+    return { match: true, syntaxicSim: 1, semanticPartialMatch: false };
   }
 
-  // 2. Normalisation pour articles et pronoms (traitement du genre et du pluriel)
-  const normalizeArticlePronoun = (w) => {
-    let lw = w;
+  // // 2. Normalisation pour articles et pronoms (traitement du genre et du pluriel)
+  // const normalizeArticlePronoun = (w) => {
+  //   let lw = w;
 
-    // Normalisation pour "il", "elle", "le", "la" et "l'"
-    if (["il", "elle", "on"].includes(lw)) return "il";
-    if (["le", "la", "les", "l'"].includes(lw)) return "le";
-    if (['mon', 'ma', 'mes'].includes(lw)) return 'mon';
-    if (['ton', 'ta', 'tes'].includes(lw)) return 'ton';
-    if (['son', 'sa', 'ses'].includes(lw)) return 'son';
-    if (['notre', 'nos', 'votre', 'vos', 'leur', 'leurs'].includes(lw)) return 'leur';
-    if (['ce', 'cet', 'cette', 'ces', "c'"].includes(lw)) return 'ce';
-    if (['un', 'une', 'des'].includes(lw)) return 'un';
-    if (['ceci', 'cela', 'ca'].includes(lw)) return 'ceci';
-    if (['moi','je', "j'"].includes(lw)) return 'je';
-    if (['toi','tu', "te", "t'"].includes(lw)) return 'tu';
-    if (["me", "m'"].includes(lw)) return 'me';
-    if (["se", "s'"].includes(lw)) return 'se';
-    if (['de', "d'"].includes(lw)) return 'de';
-    if (['ne', "n'"].includes(lw)) return 'ne';
-    if (['que', "qu'", "qui"].includes(lw)) return 'que';
+  //   // Normalisation pour "il", "elle", "le", "la" et "l'"
+  //   // if (["il", "elle", "on"].includes(lw)) return "il";
+  //   // if (["le", "la", "les", "l'"].includes(lw)) return "le";
+  //   // if (['mon', 'ma', 'mes'].includes(lw)) return 'mon';
+  //   // if (['ton', 'ta', 'tes'].includes(lw)) return 'ton';
+  //   // if (['son', 'sa', 'ses'].includes(lw)) return 'son';
+  //   // if (['notre', 'nos', 'votre', 'vos', 'leur', 'leurs'].includes(lw)) return 'leur';
+  //   // if (['ce', 'cet', 'cette', 'ces', "c'"].includes(lw)) return 'ce';
+  //   // if (['un', 'une', 'des'].includes(lw)) return 'un';
+  //   // if (['ceci', 'cela', 'ca'].includes(lw)) return 'ceci';
+  //   // if (['moi','je', "j'"].includes(lw)) return 'je';
+  //   // if (['toi','tu', "te", "t'"].includes(lw)) return 'tu';
+  //   // if (["me", "m'"].includes(lw)) return 'me';
+  //   // if (["se", "s'"].includes(lw)) return 'se';
+  //   // if (['de', "d'"].includes(lw)) return 'de';
+  //   // if (['ne', "n'"].includes(lw)) return 'ne';
+  //   // if (['que', "qu'", "qui"].includes(lw)) return 'que';
 
 
-    // // Retire le 's' final pour traiter le pluriel
-    // if (lw.endsWith("s")) {
-    //   lw = lw.slice(0, -1);
-    // }
-    return lw;
-  };
+  //   // // Retire le 's' final pour traiter le pluriel
+  //   // if (lw.endsWith("s")) {
+  //   //   lw = lw.slice(0, -1);
+  //   // }
+  //   return lw;
+  // };
+
   let normGuess = guessNoAccent;
   let normWord = wordNoAccent;
 
-  if (lang === "french") {
-    normGuess = normalizeArticlePronoun(guessNoAccent);
-    normWord = normalizeArticlePronoun(wordNoAccent);
-  }
+  // if (lang === "french") {
+  //   normGuess = normalizeArticlePronoun(guessNoAccent);
+  //   normWord = normalizeArticlePronoun(wordNoAccent);
+  // }
 
   if (lang === "english") {
     const normalizeEnglish = (lw) => {
@@ -210,11 +215,23 @@ export const matchWord = (guess, word, lang) => {
   const guessLems = word_to_lemme[normGuess] || [normGuess];
   const wordLems = word_to_lemme[normWord] || [normWord];
   if (guessLems.some((lem) => wordLems.includes(lem))) {
-    return 1;
+    return { match: true, syntaxicSim: 1, semanticPartialMatch: false };
   }
 
   // 5. Si la similarité (sans accents) est très élevée (≥ 0.95), c'est un match parfait
-  const sim = similarity(normGuess, normWord);
-  return sim >= 0.9 ? 1 : sim;
+  const syntSim = similarity(normGuess, normWord);
+  if (syntSim >= 0.9) {
+    return { match: true, syntaxicSim: 1, semanticPartialMatch: false };
+  }
+
+  const semPartial = (wordLems.some((wlem) =>
+    guessLems.some((lem) => french_synonyms[wlem]?.map(syn => syn[0]).includes(lem))
+  ));
+
+  if (semPartial) {
+    return { match: false, syntaxicSim: syntSim, semanticPartialMatch: true };
+  }
+
+  return { match: false, syntaxicSim: syntSim, semanticPartialMatch: false };
 };
 
