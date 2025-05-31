@@ -56,8 +56,14 @@ const DBManager = () => {
   return (
     <>
       <Flex gap={[2, 4]} direction={['column', 'row']}>
-        <Button colorScheme="red" onClick={resetDB} size={['sm', 'md']}>
-          {t("Reset DB")}
+        <Button colorScheme="red" onClick={() => {
+            const confirmed = window.confirm(t("Are you sure you want to reset DB?"));
+            if (confirmed) {
+              resetDB();
+            }
+          }}
+          size={['sm', 'md']}>
+            {t("Reset DB")}
         </Button>
         <Button colorScheme="blue" onClick={handleSaveDB} size={['sm', 'md']}>
           {t("Save DB")}

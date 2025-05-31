@@ -36,6 +36,7 @@ const resources = {
             "Give up Hardcore": "Abandon Hardcore",
             "Let's go Hardcore": "Tenter Hardcore",
             "Reset DB": "Réinitialiser la BD",
+            "Are you sure you want to reset DB?":"Es-tu sûr de vouloir réinitialiser la BD ?",
             "Made with ❤️ for Charline": "Réalisé avec ❤️ pour Charline",
             "Wow, champion!": "Wow, champioooon !",
             "You crushed the song in hardcore mode!": "Tu as déchiré la chanson en mode hardcore !",
